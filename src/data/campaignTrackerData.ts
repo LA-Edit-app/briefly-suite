@@ -6,6 +6,18 @@ export interface Creator {
   platforms: string[];
 }
 
+export interface ContentItem {
+  id: string;
+  type: "image" | "video" | "reel" | "story" | "carousel";
+  title: string;
+  url?: string;
+  thumbnail?: string;
+  platform: string;
+  status: "draft" | "pending" | "approved" | "published";
+  dueDate?: string;
+  notes?: string;
+}
+
 export interface CampaignData {
   id: number;
   creatorId: string;
@@ -23,6 +35,8 @@ export interface CampaignData {
   currency: string;
   brandPOs: string;
   paymentTerms: string;
+  content?: ContentItem[];
+  notes?: string;
 }
 
 export const creators: Creator[] = [

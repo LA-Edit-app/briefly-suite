@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, Plus, Trash2, ArrowLeft } from "lucide-react";
+import { Search, Filter, Plus, Trash2, ArrowLeft, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -14,6 +14,7 @@ import {
 import { EditableCell } from "@/components/campaign-tracker/EditableCell";
 import { StatusSelect } from "@/components/campaign-tracker/StatusSelect";
 import { CreatorSelector } from "@/components/campaign-tracker/CreatorSelector";
+import { CampaignDetailModal } from "@/components/campaign-tracker/CampaignDetailModal";
 import { CampaignData, Creator, initialCampaignData, creators } from "@/data/campaignTrackerData";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -45,6 +46,8 @@ const CampaignTracker = () => {
   const [campaigns, setCampaigns] = useState<CampaignData[]>(initialCampaignData);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCreator, setSelectedCreator] = useState<Creator | null>(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<CampaignData | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
 
   const creatorCampaigns = useMemo(() => {
     if (!selectedCreator) return [];
@@ -67,6 +70,18 @@ const CampaignTracker = () => {
     toast.success("Campaign updated");
   };
 
+  const updateFullCampaign = (updatedCampaign: CampaignData) => {
+    setCampaigns((prev) =>
+      prev.map((c) => (c.id === updatedCampaign.id ? updatedCampaign : c))
+    );
+    setSelectedCampaign(updatedCampaign);
+  };
+
+  const openCampaignDetail = (campaign: CampaignData) => {
+    setSelectedCampaign(campaign);
+    setDetailModalOpen(true);
+  };
+
   const addNewRow = () => {
     if (!selectedCreator) return;
     const newId = Math.max(...campaigns.map((c) => c.id)) + 1;
@@ -87,6 +102,7 @@ const CampaignTracker = () => {
       currency: "",
       brandPOs: "",
       paymentTerms: "",
+      content: [],
     };
     setCampaigns((prev) => [...prev, newCampaign]);
     toast.success("New row added");
@@ -190,6 +206,7 @@ const CampaignTracker = () => {
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead className="font-semibold text-foreground whitespace-nowrap w-10"></TableHead>
+                  <TableHead className="font-semibold text-foreground whitespace-nowrap w-10"></TableHead>
                   <TableHead className="font-semibold text-foreground whitespace-nowrap">Brand</TableHead>
                   <TableHead className="font-semibold text-foreground whitespace-nowrap">Launch Date</TableHead>
                   <TableHead className="font-semibold text-foreground min-w-[200px]">Activity</TableHead>
@@ -209,6 +226,17 @@ const CampaignTracker = () => {
               <TableBody>
                 {filteredCampaigns.map((campaign) => (
                   <TableRow key={campaign.id} className="hover:bg-muted/30 transition-colors group">
+                    <TableCell className="w-10">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
+                        onClick={() => openCampaignDetail(campaign)}
+                        title="View details"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </TableCell>
                     <TableCell className="w-10">
                       <Button
                         variant="ghost"
@@ -335,6 +363,17 @@ const CampaignTracker = () => {
           </div>
         </div>
       </div>
+
+      {/* Campaign Detail Modal */}
+      {selectedCreator && (
+        <CampaignDetailModal
+          campaign={selectedCampaign}
+          creator={selectedCreator}
+          open={detailModalOpen}
+          onOpenChange={setDetailModalOpen}
+          onUpdateCampaign={updateFullCampaign}
+        />
+      )}
     </DashboardLayout>
   );
 };
