@@ -2,14 +2,14 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { CampaignChart } from "@/components/dashboard/CampaignChart";
 import { RecentCampaigns } from "@/components/dashboard/RecentCampaigns";
-import { Megaphone, Users, DollarSign, TrendingUp } from "lucide-react";
+import { Megaphone, Users, DollarSign } from "lucide-react";
 
 const Index = () => {
   return (
     <DashboardLayout title="Dashboard">
       <div className="space-y-6 animate-fade-in">
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <StatCard
             icon={<Megaphone className="w-5 h-5" />}
             value={24}
@@ -27,12 +27,6 @@ const Index = () => {
             value="$284K"
             label="Total Revenue"
             trend={{ value: 23, positive: true }}
-          />
-          <StatCard
-            icon={<TrendingUp className="w-5 h-5" />}
-            value="87%"
-            label="Completion Rate"
-            trend={{ value: 5, positive: true }}
           />
         </div>
 
