@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EditableCell } from "@/components/campaign-tracker/EditableCell";
+import { DatePickerCell } from "@/components/campaign-tracker/DatePickerCell";
 import { StatusSelect } from "@/components/campaign-tracker/StatusSelect";
 import { CreatorSelector } from "@/components/campaign-tracker/CreatorSelector";
 import { CampaignDetailModal } from "@/components/campaign-tracker/CampaignDetailModal";
@@ -367,7 +368,7 @@ const CampaignTracker = () => {
                       />
                     </TableCell>
                     <TableCell>
-                      <EditableCell
+                      <DatePickerCell
                         value={campaign.launchDate}
                         onChange={(v) => updateCampaign(campaign.id, "launchDate", v)}
                         displayClassName="text-muted-foreground"
