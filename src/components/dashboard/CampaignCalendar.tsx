@@ -148,11 +148,14 @@ export function CampaignCalendar() {
                         key={event.id}
                         className="rounded-lg border border-border p-3 space-y-1"
                       >
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium text-foreground text-sm">
                             {event.brand}
                           </span>
                           <Badge variant="secondary" className="text-xs">
+                            {event.creatorName}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
                             {event.liveDateStr}
                           </Badge>
                         </div>
