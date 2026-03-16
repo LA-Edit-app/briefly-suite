@@ -19,7 +19,6 @@ const Settings = () => {
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [agencyName, setAgencyName] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [updatingPassword, setUpdatingPassword] = useState(false);
@@ -28,13 +27,12 @@ const Settings = () => {
     if (profile) {
       setFirstName(profile.first_name ?? "");
       setLastName(profile.last_name ?? "");
-      setAgencyName(profile.agency_name ?? "");
     }
   }, [profile]);
 
   const handleSaveProfile = () => {
     updateProfile.mutate(
-      { first_name: firstName, last_name: lastName, agency_name: agencyName },
+      { first_name: firstName, last_name: lastName },
       {
         onSuccess: () => toast.success("Profile saved"),
         onError: () => toast.error("Failed to save profile"),
@@ -64,7 +62,7 @@ const Settings = () => {
     .join("") || user?.email?.[0]?.toUpperCase() || "?";
 
   return (
-    <DashboardLayout title="Settings">
+    <DashboardLayout title="Profile Settings">
       <div className="max-w-3xl space-y-8 animate-fade-in">
         {/* Profile Section */}
         <div className="bg-card rounded-xl border border-border p-6">
@@ -115,15 +113,6 @@ const Settings = () => {
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" value={user?.email ?? ""} disabled className="opacity-60" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="agency">Agency Name</Label>
-                <Input
-                  id="agency"
-                  value={agencyName}
-                  onChange={(e) => setAgencyName(e.target.value)}
-                  placeholder="Your agency name"
-                />
               </div>
             </div>
           )}

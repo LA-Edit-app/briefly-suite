@@ -37,6 +37,26 @@ export type Database = {
           updated_at?: string
         }
       }
+      agency_members: {
+        Row: {
+          agency_id: string
+          user_id: string
+          role: 'owner' | 'admin' | 'member'
+          created_at: string
+        }
+        Insert: {
+          agency_id: string
+          user_id: string
+          role?: 'owner' | 'admin' | 'member'
+          created_at?: string
+        }
+        Update: {
+          agency_id?: string
+          user_id?: string
+          role?: 'owner' | 'admin' | 'member'
+          created_at?: string
+        }
+      }
       creators: {
         Row: {
           id: string
@@ -335,6 +355,14 @@ export type Database = {
       current_agency_id: {
         Args: Record<PropertyKey, never>
         Returns: string | null
+      }
+      current_user_agency_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string | null
+      }
+      is_agency_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
     }
     Enums: {

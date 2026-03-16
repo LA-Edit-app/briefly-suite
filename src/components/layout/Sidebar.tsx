@@ -6,23 +6,49 @@ import {
   Users,
   BarChart3,
   Settings,
+  Building2,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useIsAgencyAdmin } from "@/hooks/useAgencyMembers";
+import { useProfile } from "@/hooks/useDatabase";
+import { useAuth } from "@/hooks/useAuth";
 
-const navItems = [
+const baseNavItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
   { icon: ClipboardList, label: "Campaign Tracker", path: "/campaign-tracker" },
   { icon: Users, label: "Creators", path: "/creators" },
   { icon: BarChart3, label: "Analytics", path: "/analytics" },
-  { icon: Settings, label: "Settings", path: "/settings" },
+  { icon: Settings, label: "Profile Settings", path: "/settings" },
 ];
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const { user } = useAuth();
+  const { data: profile } = useProfile();
+  const { data: isAdmin } = useIsAgencyAdmin();
+
+  const navItems = isAdmin
+    ? [
+        ...baseNavItems,
+        { icon: Building2, label: "Agency Settings", path: "/agency-settings" },
+      ]
+    : baseNavItems;
+
+  const displayName =
+    [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") ||
+    user?.email ||
+    "User";
+
+  const displayEmail = user?.email ?? "";
+
+  const initials = [profile?.first_name, profile?.last_name]
+    .filter(Boolean)
+    .map((n) => n![0].toUpperCase())
+    .join("") || displayEmail[0]?.toUpperCase() || "?";
 
   return (
     <aside
@@ -87,16 +113,16 @@ export function Sidebar() {
             collapsed && "justify-center"
           )}
         >
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium text-sm">
-            AT
+          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium text-sm flex-shrink-0">
+            {initials}
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground truncate">
-                Admin Team
+                {displayName}
               </p>
               <p className="text-xs text-muted-foreground truncate">
-                admin@laeditstudio.com
+                {displayEmail}
               </p>
             </div>
           )}
