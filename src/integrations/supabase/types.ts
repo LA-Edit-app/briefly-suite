@@ -37,6 +37,44 @@ export type Database = {
           updated_at?: string
         }
       }
+      agency_column_schemas: {
+        Row: {
+          id: string
+          agency_id: string
+          version: number
+          columns: Json
+          is_published: boolean
+          published_at: string | null
+          published_by: string | null
+          created_by: string | null
+          created_at: string
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          agency_id: string
+          version: number
+          columns: Json
+          is_published?: boolean
+          published_at?: string | null
+          published_by?: string | null
+          created_by?: string | null
+          created_at?: string
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          agency_id?: string
+          version?: number
+          columns?: Json
+          is_published?: boolean
+          published_at?: string | null
+          published_by?: string | null
+          created_by?: string | null
+          created_at?: string
+          notes?: string | null
+        }
+      }
       agency_members: {
         Row: {
           agency_id: string

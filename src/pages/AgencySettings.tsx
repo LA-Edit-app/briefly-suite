@@ -25,7 +25,18 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
-import { UserMinus, UserPlus, ShieldCheck, Shield } from "lucide-react";
+import { UserMinus, UserPlus, ShieldCheck, Shield, LayoutGrid, History, Plus, Pencil, Trash2, CheckCircle2, RotateCcw } from "lucide-react";
+import { ColumnSchemaEditor } from "@/components/agency-settings/ColumnSchemaEditor";
+import {
+  useAgencySchemas,
+  useCreateSchema,
+  useUpdateSchema,
+  usePublishSchema,
+  useDeleteSchema,
+} from "@/hooks/useColumnSchemas";
+import type { ColumnDefinition, ColumnSchema } from "@/hooks/useColumnSchemas";
+import { Textarea } from "@/components/ui/textarea";
+import { format } from "date-fns";
 import { toast } from "sonner";
 import {
   useCurrentAgency,
@@ -81,6 +92,19 @@ const AgencySettings = () => {
   const updateMemberRole = useUpdateMemberRole();
   const removeMember = useRemoveMember();
   const inviteMember = useInviteMember();
+
+  // Column schema state
+  const { data: schemas = [], isLoading: schemasLoading } = useAgencySchemas();
+  const createSchema = useCreateSchema();
+  const updateSchema = useUpdateSchema();
+  const publishSchema = usePublishSchema();
+  const deleteSchema = useDeleteSchema();
+
+  const [schemaView, setSchemaView] = useState<"list" | "edit">("list");
+  const [editingSchema, setEditingSchema] = useState<ColumnSchema | null>(null);
+  const [editingColumns, setEditingColumns] = useState<ColumnDefinition[]>([]);
+  const [editingNotes, setEditingNotes] = useState("");
+  const [schemaSavePending, setSchemaSavePending] = useState(false);
 
   const [agencyName, setAgencyName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
@@ -292,6 +316,249 @@ const AgencySettings = () => {
                   </div>
                 );
               })}
+            </div>
+          )}
+        </div>
+
+        {/* Grid Columns Configuration */}
+        <div className="bg-card rounded-xl border border-border p-6">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <LayoutGrid className="w-5 h-5 text-primary" />
+              <h3 className="text-lg font-semibold text-foreground">Campaign Grid Columns</h3>
+            </div>
+            {schemaView === "list" && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-2"
+                onClick={() => {
+                  const published = schemas.find((s) => s.is_published);
+                  const baseColumns = published?.columns ?? [];
+                  createSchema.mutate(
+                    { columns: baseColumns, notes: "" },
+                    {
+                      onSuccess: (newSchema) => {
+                        setEditingSchema(newSchema);
+                        setEditingColumns([...newSchema.columns]);
+                        setEditingNotes("");
+                        setSchemaView("edit");
+                      },
+                      onError: (err) => toast.error(err.message),
+                    }
+                  );
+                }}
+                disabled={createSchema.isPending}
+              >
+                <Plus className="w-4 h-4" />
+                New version
+              </Button>
+            )}
+            {schemaView === "edit" && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setSchemaView("list")}
+              >
+                ← Back to versions
+              </Button>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground mb-6">
+            {schemaView === "list"
+              ? "Configure which columns appear in the campaign tracker grid. Publish a version to make it live for all team members."
+              : `Editing Draft v${editingSchema?.version ?? ""} — changes are saved when you click Save.`}
+          </p>
+
+          {schemaView === "list" && (
+            schemasLoading ? (
+              <div className="space-y-2">
+                {[1, 2].map((i) => <Skeleton key={i} className="h-12 rounded-lg" />)}
+              </div>
+            ) : schemas.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No schema versions yet.</p>
+            ) : (
+              <div className="space-y-2">
+                {schemas.map((schema) => (
+                  <div
+                    key={schema.id}
+                    className={`flex items-center gap-3 rounded-lg border px-4 py-3 ${
+                      schema.is_published
+                        ? "border-primary/40 bg-primary/5"
+                        : "border-border bg-muted/20"
+                    }`}
+                  >
+                    <History className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Version {schema.version}</span>
+                        {schema.is_published && (
+                          <Badge className="text-[10px] gap-1 bg-primary text-primary-foreground">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Published
+                          </Badge>
+                        )}
+                        {!schema.is_published && (
+                          <Badge variant="outline" className="text-[10px]">Draft</Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {schema.is_published && schema.published_at
+                          ? `Published ${format(new Date(schema.published_at), "d MMM yyyy, HH:mm")}`
+                          : `Created ${format(new Date(schema.created_at), "d MMM yyyy, HH:mm")}`}
+                        {schema.notes ? ` · ${schema.notes}` : ""}
+                        {" · "}{schema.columns.filter((c) => c.active).length} active columns
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {!schema.is_published && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="gap-1 h-8"
+                            onClick={() => {
+                              setEditingSchema(schema);
+                              setEditingColumns([...schema.columns]);
+                              setEditingNotes(schema.notes ?? "");
+                              setSchemaView("edit");
+                            }}
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="gap-1 h-8 text-primary hover:text-primary"
+                            onClick={() =>
+                              publishSchema.mutate(schema.id, {
+                                onSuccess: () => toast.success(`Version ${schema.version} is now live`),
+                                onError: (err) => toast.error(err.message),
+                              })
+                            }
+                            disabled={publishSchema.isPending}
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            Publish
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="gap-1 h-8 text-destructive hover:text-destructive"
+                            onClick={() =>
+                              deleteSchema.mutate(schema.id, {
+                                onSuccess: () => toast.success("Draft deleted"),
+                                onError: (err) => toast.error(err.message),
+                              })
+                            }
+                            disabled={deleteSchema.isPending}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </>
+                      )}
+                      {schema.is_published && (
+                        <Badge variant="secondary" className="text-[10px]">Live</Badge>
+                      )}
+                      {!schema.is_published && schemas.some((s) => s.is_published && s.version > schema.version) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1 h-8 text-xs"
+                          onClick={() =>
+                            publishSchema.mutate(schema.id, {
+                              onSuccess: () => toast.success(`Rolled back to version ${schema.version}`),
+                              onError: (err) => toast.error(err.message),
+                            })
+                          }
+                          disabled={publishSchema.isPending}
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          Rollback
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+
+          {schemaView === "edit" && editingSchema && (
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <Label htmlFor="schemaVersionNotes">Version notes <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                <Textarea
+                  id="schemaVersionNotes"
+                  value={editingNotes}
+                  onChange={(e) => setEditingNotes(e.target.value)}
+                  placeholder="What changed in this version?"
+                  className="h-16 text-sm resize-none"
+                />
+              </div>
+
+              <ColumnSchemaEditor
+                columns={editingColumns}
+                onChange={setEditingColumns}
+              />
+
+              <div className="flex items-center gap-3 pt-2">
+                <Button
+                  onClick={() => {
+                    setSchemaSavePending(true);
+                    updateSchema.mutate(
+                      { id: editingSchema.id, columns: editingColumns, notes: editingNotes },
+                      {
+                        onSuccess: () => {
+                          toast.success("Draft saved");
+                          setSchemaSavePending(false);
+                        },
+                        onError: (err) => {
+                          toast.error(err.message);
+                          setSchemaSavePending(false);
+                        },
+                      }
+                    );
+                  }}
+                  disabled={updateSchema.isPending || schemaSavePending}
+                  variant="outline"
+                >
+                  {updateSchema.isPending ? "Saving..." : "Save draft"}
+                </Button>
+                <Button
+                  onClick={() => {
+                    setSchemaSavePending(true);
+                    updateSchema.mutate(
+                      { id: editingSchema.id, columns: editingColumns, notes: editingNotes },
+                      {
+                        onSuccess: () => {
+                          publishSchema.mutate(editingSchema.id, {
+                            onSuccess: () => {
+                              toast.success(`Version ${editingSchema.version} saved and published`);
+                              setSchemaSavePending(false);
+                              setSchemaView("list");
+                            },
+                            onError: (err) => {
+                              toast.error(err.message);
+                              setSchemaSavePending(false);
+                            },
+                          });
+                        },
+                        onError: (err) => {
+                          toast.error(err.message);
+                          setSchemaSavePending(false);
+                        },
+                      }
+                    );
+                  }}
+                  disabled={updateSchema.isPending || publishSchema.isPending || schemaSavePending}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  {publishSchema.isPending ? "Publishing..." : "Save & publish"}
+                </Button>
+              </div>
             </div>
           )}
         </div>

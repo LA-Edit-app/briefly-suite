@@ -36,6 +36,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { usePublishedSchema } from "@/hooks/useColumnSchemas";
+import type { ColumnDefinition } from "@/hooks/useColumnSchemas";
 
 const statusOptions = [
   { value: "Pending", label: "Pending" },
@@ -112,6 +114,10 @@ const CampaignTracker = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const highlightedRowRef = useRef<HTMLTableRowElement | null>(null);
   const syncedCreatorIdsRef = useRef<Set<string>>(new Set());
+
+  // Published column schema (falls back to defaults if none published yet)
+  const { data: publishedSchema } = usePublishedSchema();
+  const activeColumns: ColumnDefinition[] = (publishedSchema?.columns ?? []).filter((c) => c.active);
 
   const creators = useMemo<Creator[]>(() => {
     return creatorsRaw.map((creator) => ({
@@ -456,23 +462,13 @@ const CampaignTracker = () => {
 
   const downloadTemplate = async () => {
     const XLSX = await import("xlsx");
-    const templateRow = {
-      Brand: "",
-      "Launch Date": "",
-      Activity: "",
-      "Live Date": "",
-      "AG Price": "",
-      "Creator Fee": "",
-      Shot: "",
-      Status: "Pending",
-      "Invoice No": "",
-      "Paid Date": "",
-      "Includes VAT": "",
-      Currency: "GBP",
-      "Brand PO": "",
-      "Payment Terms": "",
-      Notes: "",
-    };
+    // Build template row from active schema columns
+    const templateRow: Record<string, string | number> = {};
+    for (const col of activeColumns) {
+      if (col.key === "complete") templateRow[col.label] = "Pending";
+      else if (col.key === "currency") templateRow[col.label] = "GBP";
+      else templateRow[col.label] = "";
+    }
     const ws = XLSX.utils.json_to_sheet([templateRow]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Campaigns");
@@ -483,6 +479,26 @@ const CampaignTracker = () => {
     const file = event.target.files?.[0];
     if (!file || !selectedCreator) return;
 
+    // Build a label→key lookup from the active schema
+    const labelToKey: Record<string, string> = {};
+    for (const col of activeColumns) {
+      labelToKey[col.label.toLowerCase()] = col.key;
+    }
+
+    const getField = (row: Record<string, unknown>, ...labels: string[]): string => {
+      for (const label of labels) {
+        const v = row[label] ?? row[label.toLowerCase()];
+        if (v !== undefined && v !== null && String(v).trim() !== "") return String(v).trim();
+        // Try schema label lookup
+        const colKey = labelToKey[label.toLowerCase()];
+        if (colKey) {
+          const v2 = row[colKey];
+          if (v2 !== undefined && v2 !== null && String(v2).trim() !== "") return String(v2).trim();
+        }
+      }
+      return "";
+    };
+
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
@@ -491,38 +507,44 @@ const CampaignTracker = () => {
         const workbook = XLSX.read(data, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        const jsonData = XLSX.utils.sheet_to_json(worksheet) as Record<string, unknown>[];
 
-        for (const row of jsonData as any[]) {
-          const importedStatus = normalizeCampaignStatus(String(row.Status || row.status || "Pending"));
+        for (const row of jsonData) {
+          const statusRaw = getField(row, "Status", "status", "Complete", "complete");
+          const importedStatus = normalizeCampaignStatus(statusRaw || "Pending");
+
+          // Build custom_fields for non-system columns in schema
+          const customFields: Record<string, unknown> = {};
+          for (const col of activeColumns) {
+            if (!["brand","launchDate","activity","liveDate","agPrice","creatorFee",
+                  "shot","complete","detailStatus","invoiceNo","paid","includesVat",
+                  "currency","brandPOs","paymentTerms"].includes(col.key)) {
+              const val = getField(row, col.label, col.key);
+              if (val !== "") customFields[col.key] = col.type === "number" || col.type === "currency" ? parseFloat(val) || null : val;
+            }
+          }
 
           await createCampaign.mutateAsync({
             creator_id: selectedCreator.id,
-            brand: row.Brand || row.brand || "Untitled Campaign",
-            launch_date: row["Launch Date"] || row.launchDate || null,
-            activity: row.Activity || row.activity || null,
-            live_date: row["Live Date"] || row.liveDate || null,
-            ag_price: parseFloat(row["AG Price"] || row.agPrice) || null,
-            creator_fee: parseFloat(row["Creator Fee"] || row.creatorFee) || null,
-            shot: row.Shot || row.shot || null,
+            brand: getField(row, "Brand", "brand") || "Untitled Campaign",
+            launch_date: getField(row, "Launch Date", "launchDate") || null,
+            activity: getField(row, "Activity", "activity") || null,
+            live_date: getField(row, "Live Date", "liveDate") || null,
+            ag_price: parseFloat(getField(row, "AG Price", "agPrice")) || null,
+            creator_fee: parseFloat(getField(row, "Creator Fee", "creatorFee")) || null,
+            shot: getField(row, "Shot", "shot") || null,
             complete: importedStatus === "completed",
             campaign_status: importedStatus,
-            completion_status: String(
-              row["Detail Status"] ||
-              row.detailStatus ||
-              row["Secondary Status"] ||
-              row.secondaryStatus ||
-              ""
-            ).toLowerCase() === "awaiting details"
+            completion_status: getField(row, "Detail Status", "detailStatus", "Secondary Status").toLowerCase() === "awaiting details"
               ? "awaiting_details"
               : null,
-            invoice_no: row["Invoice No"] || row.invoiceNo || null,
-            paid_date: row.Paid || row.paid || null,
-            includes_vat: row["Includes VAT"] || row.includesVat || null,
-            currency: row.Currency || row.currency || "GBP",
-            brand_pos: row["Brand POs"] || row["Brand PO"] || row.brandPOs || null,
-            payment_terms: row["Payment Terms"] || row.paymentTerms || null,
-            notes: row.Notes || row.notes || null,
+            invoice_no: getField(row, "Invoice No", "invoiceNo") || null,
+            paid_date: getField(row, "Paid", "Paid Date", "paid") || null,
+            includes_vat: getField(row, "Includes VAT", "includesVat") || null,
+            currency: getField(row, "Currency", "currency") || "GBP",
+            brand_pos: getField(row, "Brand POs", "Brand PO", "brandPOs") || null,
+            payment_terms: getField(row, "Payment Terms", "paymentTerms") || null,
+            notes: getField(row, "Notes", "notes") || null,
           });
         }
 
@@ -782,27 +804,24 @@ const CampaignTracker = () => {
                 <TableRow className="bg-muted/50">
                   <TableHead className="font-semibold text-foreground whitespace-nowrap w-10"></TableHead>
                   <TableHead className="font-semibold text-foreground whitespace-nowrap w-10"></TableHead>
-                  <TableHead className="font-semibold text-foreground whitespace-nowrap">Brand</TableHead>
-                  <TableHead className="font-semibold text-foreground whitespace-nowrap">Launch Date</TableHead>
-                  <TableHead className="font-semibold text-foreground min-w-[200px]">Activity</TableHead>
-                  <TableHead className="font-semibold text-foreground whitespace-nowrap">Live Date</TableHead>
-                  <TableHead className="font-semibold text-foreground whitespace-nowrap text-right">AG Price</TableHead>
-                  <TableHead className="font-semibold text-foreground whitespace-nowrap text-right">Lauren Fee</TableHead>
-                  <TableHead className="font-semibold text-foreground whitespace-nowrap">Shot</TableHead>
-                  <TableHead className="font-semibold text-foreground whitespace-nowrap">Status</TableHead>
-                  <TableHead className="font-semibold text-foreground whitespace-nowrap">Detail Status</TableHead>
-                  <TableHead className="font-semibold text-foreground whitespace-nowrap">Invoice No</TableHead>
-                  <TableHead className="font-semibold text-foreground whitespace-nowrap">Paid</TableHead>
-                  <TableHead className="font-semibold text-foreground whitespace-nowrap">Includes VAT</TableHead>
-                  <TableHead className="font-semibold text-foreground whitespace-nowrap">Currency</TableHead>
-                  <TableHead className="font-semibold text-foreground whitespace-nowrap">Brand POs</TableHead>
-                  <TableHead className="font-semibold text-foreground whitespace-nowrap">Payment Terms</TableHead>
+                  {activeColumns.map((col) => (
+                    <TableHead
+                      key={col.key}
+                      className={`font-semibold text-foreground whitespace-nowrap${
+                        col.key === "agPrice" || col.key === "creatorFee" ? " text-right" : ""
+                      }${col.width === "wide" ? " min-w-[200px]" : ""}${
+                        col.width === "compact" ? "" : ""
+                      }`}
+                    >
+                      {col.label}
+                    </TableHead>
+                  ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredCampaigns.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={17} className="py-8 text-center text-sm text-muted-foreground">
+                    <TableCell colSpan={2 + activeColumns.length} className="py-8 text-center text-sm text-muted-foreground">
                       No campaigns found for this creator in the selected view
                     </TableCell>
                   </TableRow>
@@ -837,122 +856,152 @@ const CampaignTracker = () => {
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </TableCell>
-                    <TableCell className="font-medium">
-                      <EditableCell
-                        value={campaign.brand}
-                        onChange={(v) => void updateCampaign(campaign.id, "brand", v)}
-                        displayClassName="font-medium text-foreground"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <DatePickerCell
-                        value={campaign.launchDate}
-                        onChange={(v) => void updateCampaign(campaign.id, "launchDate", v)}
-                        displayClassName="text-muted-foreground"
-                      />
-                    </TableCell>
-                    <TableCell className="max-w-[300px]">
-                      <EditableCell
-                        value={campaign.activity}
-                        onChange={(v) => void updateCampaign(campaign.id, "activity", v)}
-                        type="textarea"
-                        displayClassName="text-sm text-muted-foreground"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <DatePickerCell
-                        value={campaign.liveDate}
-                        onChange={(v) => void updateCampaign(campaign.id, "liveDate", v)}
-                        displayClassName="text-muted-foreground"
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <EditableCell
-                        value={campaign.agPrice}
-                        onChange={(v) => void updateCampaign(campaign.id, "agPrice", v)}
-                        type="number"
-                        formatAsCurrency
-                        displayClassName="font-medium text-foreground justify-end"
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="text-muted-foreground">
-                        {campaign.agPrice != null ? `£${(campaign.agPrice * 0.8).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-"}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <EditableCell
-                        value={campaign.shot}
-                        onChange={(v) => void updateCampaign(campaign.id, "shot", v)}
-                        displayClassName="text-muted-foreground"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <StatusSelect
-                        value={campaign.complete}
-                        onChange={(v) => void updateCampaign(campaign.id, "complete", v)}
-                        options={statusOptions}
-                        getStyle={getStatusStyle}
-                        placeholder="Status"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <StatusSelect
-                        value={campaign.secondaryStatus || ""}
-                        onChange={(v) => void updateCampaign(campaign.id, "secondaryStatus", v)}
-                        options={secondaryStatusOptions}
-                        getStyle={getSecondaryStatusStyle}
-                        placeholder="Status"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <EditableCell
-                        value={campaign.invoiceNo}
-                        onChange={(v) => void updateCampaign(campaign.id, "invoiceNo", v)}
-                        displayClassName="text-muted-foreground"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <StatusSelect
-                        value={campaign.paid}
-                        onChange={(v) => void updateCampaign(campaign.id, "paid", v)}
-                        options={paidOptions}
-                        getStyle={getPaidStyle}
-                        placeholder="Payment"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <StatusSelect
-                        value={campaign.includesVat}
-                        onChange={(v) => void updateCampaign(campaign.id, "includesVat", v)}
-                        options={vatOptions}
-                        getStyle={getVatStyle}
-                        placeholder="VAT"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <StatusSelect
-                        value={campaign.currency}
-                        onChange={(v) => void updateCampaign(campaign.id, "currency", v)}
-                        options={currencyOptions}
-                        getStyle={getCurrencyStyle}
-                        placeholder="Currency"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <EditableCell
-                        value={campaign.brandPOs}
-                        onChange={(v) => void updateCampaign(campaign.id, "brandPOs", v)}
-                        displayClassName="text-muted-foreground"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <EditableCell
-                        value={campaign.paymentTerms}
-                        onChange={(v) => void updateCampaign(campaign.id, "paymentTerms", v)}
-                        displayClassName="text-muted-foreground"
-                      />
-                    </TableCell>
+                    {activeColumns.map((col) => {
+                      const customVal = (campaign as unknown as Record<string, unknown>).custom_fields
+                        ? ((campaign as unknown as Record<string, Record<string, unknown>>).custom_fields?.[col.key] ?? "")
+                        : "";
+
+                      switch (col.key) {
+                        case "brand":
+                          return (
+                            <TableCell key={col.key} className="font-medium">
+                              <EditableCell value={campaign.brand} onChange={(v) => void updateCampaign(campaign.id, "brand", v)} displayClassName="font-medium text-foreground" />
+                            </TableCell>
+                          );
+                        case "launchDate":
+                          return (
+                            <TableCell key={col.key}>
+                              <DatePickerCell value={campaign.launchDate} onChange={(v) => void updateCampaign(campaign.id, "launchDate", v)} displayClassName="text-muted-foreground" />
+                            </TableCell>
+                          );
+                        case "activity":
+                          return (
+                            <TableCell key={col.key} className="max-w-[300px]">
+                              <EditableCell value={campaign.activity} onChange={(v) => void updateCampaign(campaign.id, "activity", v)} type="textarea" displayClassName="text-sm text-muted-foreground" />
+                            </TableCell>
+                          );
+                        case "liveDate":
+                          return (
+                            <TableCell key={col.key}>
+                              <DatePickerCell value={campaign.liveDate} onChange={(v) => void updateCampaign(campaign.id, "liveDate", v)} displayClassName="text-muted-foreground" />
+                            </TableCell>
+                          );
+                        case "agPrice":
+                          return (
+                            <TableCell key={col.key} className="text-right">
+                              <EditableCell value={campaign.agPrice} onChange={(v) => void updateCampaign(campaign.id, "agPrice", v)} type="number" formatAsCurrency displayClassName="font-medium text-foreground justify-end" />
+                            </TableCell>
+                          );
+                        case "creatorFee":
+                          return (
+                            <TableCell key={col.key} className="text-right">
+                              <span className="text-muted-foreground">
+                                {campaign.agPrice != null ? `£${(campaign.agPrice * 0.8).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-"}
+                              </span>
+                            </TableCell>
+                          );
+                        case "shot":
+                          return (
+                            <TableCell key={col.key}>
+                              <EditableCell value={campaign.shot} onChange={(v) => void updateCampaign(campaign.id, "shot", v)} displayClassName="text-muted-foreground" />
+                            </TableCell>
+                          );
+                        case "complete":
+                          return (
+                            <TableCell key={col.key}>
+                              <StatusSelect value={campaign.complete} onChange={(v) => void updateCampaign(campaign.id, "complete", v)} options={col.options ?? statusOptions} getStyle={getStatusStyle} placeholder="Status" />
+                            </TableCell>
+                          );
+                        case "detailStatus":
+                          return (
+                            <TableCell key={col.key}>
+                              <StatusSelect value={campaign.secondaryStatus || ""} onChange={(v) => void updateCampaign(campaign.id, "secondaryStatus", v)} options={col.options ?? secondaryStatusOptions} getStyle={getSecondaryStatusStyle} placeholder="Status" />
+                            </TableCell>
+                          );
+                        case "invoiceNo":
+                          return (
+                            <TableCell key={col.key}>
+                              <EditableCell value={campaign.invoiceNo} onChange={(v) => void updateCampaign(campaign.id, "invoiceNo", v)} displayClassName="text-muted-foreground" />
+                            </TableCell>
+                          );
+                        case "paid":
+                          return (
+                            <TableCell key={col.key}>
+                              <StatusSelect value={campaign.paid} onChange={(v) => void updateCampaign(campaign.id, "paid", v)} options={col.options ?? paidOptions} getStyle={getPaidStyle} placeholder="Payment" />
+                            </TableCell>
+                          );
+                        case "includesVat":
+                          return (
+                            <TableCell key={col.key}>
+                              <StatusSelect value={campaign.includesVat} onChange={(v) => void updateCampaign(campaign.id, "includesVat", v)} options={col.options ?? vatOptions} getStyle={getVatStyle} placeholder="VAT" />
+                            </TableCell>
+                          );
+                        case "currency":
+                          return (
+                            <TableCell key={col.key}>
+                              <StatusSelect value={campaign.currency} onChange={(v) => void updateCampaign(campaign.id, "currency", v)} options={col.options ?? currencyOptions} getStyle={getCurrencyStyle} placeholder="Currency" />
+                            </TableCell>
+                          );
+                        case "brandPOs":
+                          return (
+                            <TableCell key={col.key}>
+                              <EditableCell value={campaign.brandPOs} onChange={(v) => void updateCampaign(campaign.id, "brandPOs", v)} displayClassName="text-muted-foreground" />
+                            </TableCell>
+                          );
+                        case "paymentTerms":
+                          return (
+                            <TableCell key={col.key}>
+                              <EditableCell value={campaign.paymentTerms} onChange={(v) => void updateCampaign(campaign.id, "paymentTerms", v)} displayClassName="text-muted-foreground" />
+                            </TableCell>
+                          );
+                        default:
+                          // Custom columns stored in custom_fields
+                          if (col.type === "select") {
+                            return (
+                              <TableCell key={col.key}>
+                                <StatusSelect
+                                  value={String(customVal ?? "")}
+                                  onChange={(v) => {
+                                    const cf = { ...((campaign as unknown as Record<string, Record<string, unknown>>).custom_fields ?? {}), [col.key]: v };
+                                    void updateCampaignMutation.mutateAsync({ id: String(campaign.id), updates: { custom_fields: cf } });
+                                  }}
+                                  options={col.options ?? []}
+                                  getStyle={() => "bg-muted text-muted-foreground"}
+                                  placeholder={col.label}
+                                />
+                              </TableCell>
+                            );
+                          }
+                          if (col.type === "date") {
+                            return (
+                              <TableCell key={col.key}>
+                                <DatePickerCell
+                                  value={String(customVal ?? "")}
+                                  onChange={(v) => {
+                                    const cf = { ...((campaign as unknown as Record<string, Record<string, unknown>>).custom_fields ?? {}), [col.key]: v };
+                                    void updateCampaignMutation.mutateAsync({ id: String(campaign.id), updates: { custom_fields: cf } });
+                                  }}
+                                  displayClassName="text-muted-foreground"
+                                />
+                              </TableCell>
+                            );
+                          }
+                          return (
+                            <TableCell key={col.key}>
+                              <EditableCell
+                                value={col.type === "number" || col.type === "currency" ? (customVal as number | null | undefined) ?? null : String(customVal ?? "")}
+                                onChange={(v) => {
+                                  const cf = { ...((campaign as unknown as Record<string, Record<string, unknown>>).custom_fields ?? {}), [col.key]: v };
+                                  void updateCampaignMutation.mutateAsync({ id: String(campaign.id), updates: { custom_fields: cf } });
+                                }}
+                                type={col.type === "currency" ? "number" : col.type === "number" ? "number" : "text"}
+                                formatAsCurrency={col.type === "currency"}
+                                displayClassName="text-muted-foreground"
+                              />
+                            </TableCell>
+                          );
+                      }
+                    })}
                   </TableRow>
                 )})}
               </TableBody>
