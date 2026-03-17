@@ -53,35 +53,34 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "h-screen bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-300",
+        "h-screen bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-300 relative",
         collapsed ? "w-16" : "w-64"
       )}
     >
+      {/* Floating expand button on sidebar edge when collapsed */}
+      {collapsed && (
+        <button
+          onClick={() => setCollapsed(false)}
+          className="absolute -right-3 top-5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-background border border-sidebar-border shadow-sm hover:bg-accent transition-colors"
+          title="Expand sidebar"
+        >
+          <ChevronRight className="h-3 w-3 text-muted-foreground" />
+        </button>
+      )}
+
       {/* Logo */}
-      <div className={cn(
-        "p-4 border-b border-sidebar-border flex items-center",
-        collapsed ? "justify-center" : "justify-between"
-      )}>
-        {!collapsed && (
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Megaphone className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <span className="font-semibold text-foreground">Creator Connect</span>
+      <div className="p-4 border-b border-sidebar-border flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+            <Megaphone className="w-4 h-4 text-primary-foreground" />
           </div>
-        )}
-        {collapsed && (
-          <button
-            onClick={() => setCollapsed(false)}
-            className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center hover:opacity-90 transition-opacity"
-            title="Expand sidebar"
-          >
-            <Megaphone className="w-5 h-5 text-primary-foreground" />
-          </button>
-        )}
+          {!collapsed && (
+            <span className="font-semibold text-foreground">Creator Connect</span>
+          )}
+        </div>
         {!collapsed && (
           <button
-            onClick={() => setCollapsed(!collapsed)}
+            onClick={() => setCollapsed(true)}
             className="p-1.5 rounded-lg hover:bg-sidebar-accent transition-colors"
           >
             <ChevronLeft className="w-4 h-4 text-sidebar-foreground" />
