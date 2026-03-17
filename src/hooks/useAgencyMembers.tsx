@@ -15,6 +15,25 @@ export type AgencyMemberWithProfile = AgencyMemberRow & {
   } | null;
 };
 
+// Current user's own profile row
+export const useProfile = () => {
+  return useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, first_name, last_name, avatar_url')
+        .eq('id', user.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
 // Current user's role within their agency
 export const useCurrentUserRole = () => {
   return useQuery({

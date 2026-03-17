@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { GlobalSearch } from "./GlobalSearch";
+import { useProfile } from "@/hooks/useAgencyMembers";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface HeaderProps {
   title: string;
@@ -10,12 +12,21 @@ interface HeaderProps {
 
 export function Header({ title }: HeaderProps) {
   const { user, signOut } = useAuth();
+  const { data: profile } = useProfile();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
     await signOut();
     navigate("/auth");
   };
+
+  const initials = (() => {
+    const first = profile?.first_name?.trim();
+    const last = profile?.last_name?.trim();
+    if (first && last) return `${first[0]}${last[0]}`.toUpperCase();
+    if (first) return first.slice(0, 2).toUpperCase();
+    return (user?.email?.charAt(0) ?? "U").toUpperCase();
+  })();
 
   return (
     <header className="h-16 border-b border-border bg-card px-6 flex items-center justify-between">
@@ -29,9 +40,12 @@ export function Header({ title }: HeaderProps) {
           <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
         </Button>
         
-        <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium text-sm">
-          {user?.email?.charAt(0).toUpperCase() || "U"}
-        </div>
+        <Avatar className="w-9 h-9">
+          {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt={initials} />}
+          <AvatarFallback className="bg-primary text-primary-foreground font-medium text-sm">
+            {initials}
+          </AvatarFallback>
+        </Avatar>
 
         <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sign out">
           <LogOut className="w-5 h-5" />
