@@ -177,27 +177,13 @@ export const useInviteMember = () => {
       email: string;
       role?: 'admin' | 'member';
     }) => {
-      // Look up user by email in profiles
-      const { data: profile, error: lookupError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', email.toLowerCase().trim())
-        .maybeSingle();
+      const { data, error } = await supabase.functions.invoke('invite-member', {
+        body: { agencyId, email, role },
+      });
 
-      if (lookupError) throw lookupError;
-      if (!profile) throw new Error('No account found with that email address.');
-
-      const { data, error } = await supabase
-        .from('agency_members')
-        .insert({ agency_id: agencyId, user_id: profile.id, role })
-        .select()
-        .single();
-
-      if (error) {
-        if (error.code === '23505') throw new Error('This user is already a member of your agency.');
-        throw error;
-      }
-      return data;
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data as { status: 'added' | 'invited' };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agency-members'] });

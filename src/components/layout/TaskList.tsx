@@ -554,10 +554,10 @@ export function TaskList() {
                 {task.assignee && (
                   <Badge
                     variant="outline"
-                    className="mt-0.5 text-[10px] font-medium inline-flex items-center gap-1"
+                    className="mt-0.5 ml-1 text-[10px] font-medium inline-flex items-center gap-1"
                   >
                     <UserCheck className="h-3 w-3" />
-                    {[task.assignee.first_name, task.assignee.last_name].filter(Boolean).join(' ') || task.assignee.email || 'Assigned'}
+                    Assigned to: {[task.assignee.first_name, task.assignee.last_name].filter(Boolean).join(' ') || task.assignee.email || 'Unknown'}
                   </Badge>
                 )}
               </div>

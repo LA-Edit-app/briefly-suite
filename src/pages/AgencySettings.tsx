@@ -128,11 +128,16 @@ const AgencySettings = () => {
   const handleInvite = () => {
     if (!agency) return;
     if (!inviteEmail.trim()) return toast.error("Enter an email address");
+    const emailSnapshot = inviteEmail.trim();
     inviteMember.mutate(
-      { agencyId: agency.id, email: inviteEmail.trim(), role: inviteRole },
+      { agencyId: agency.id, email: emailSnapshot, role: inviteRole },
       {
-        onSuccess: () => {
-          toast.success(`Invitation sent to ${inviteEmail.trim()}`);
+        onSuccess: (data) => {
+          if (data?.status === 'invited') {
+            toast.success(`Invitation email sent to ${emailSnapshot}. They'll join your agency when they sign up.`);
+          } else {
+            toast.success(`${emailSnapshot} has been added to your agency.`);
+          }
           setInviteEmail("");
           setInviteRole("member");
         },
@@ -295,7 +300,7 @@ const AgencySettings = () => {
         <div className="bg-card rounded-xl border border-border p-6">
           <h3 className="text-lg font-semibold text-foreground mb-2">Invite Team Member</h3>
           <p className="text-sm text-muted-foreground mb-6">
-            Invite someone who already has an account on this platform.
+            Add an existing user by email, or send an invitation to someone who hasn't signed up yet.
           </p>
 
           <div className="flex gap-3">
