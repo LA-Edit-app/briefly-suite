@@ -75,7 +75,7 @@ export function Sidebar() {
             <Megaphone className="w-4 h-4 text-primary-foreground" />
           </div>
           {!collapsed && (
-            <span className="font-semibold text-foreground">Brefly Suite</span>
+            <span className="font-semibold text-foreground">Briefly Suite</span>
           )}
         </div>
         {!collapsed && (
