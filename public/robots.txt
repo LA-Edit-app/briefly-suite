@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://breaflysuite.com/sitemap.xml
+Sitemap: https://breflysuite.com/sitemap.xml
