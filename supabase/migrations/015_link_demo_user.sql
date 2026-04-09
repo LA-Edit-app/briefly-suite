@@ -14,6 +14,12 @@ DECLARE
   demo_agency_id  UUID;
   auto_agency_id  UUID;
 BEGIN
+  -- Skip entirely if the demo auth user doesn't exist (e.g. fresh project)
+  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = demo_user_id) THEN
+    RAISE NOTICE 'Demo user % not found – skipping migration 015', demo_user_id;
+    RETURN;
+  END IF;
+
   -- Get the Demo Agency id
   SELECT id INTO demo_agency_id
   FROM   public.agencies
