@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { BrandThemeProvider } from "@/context/BrandThemeContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import ComingSoon from "./pages/ComingSoon";
 
 const Index = lazy(() => import("./pages/Index"));
 const Campaigns = lazy(() => import("./pages/Campaigns"));
@@ -127,7 +128,9 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <AppRoutes />
+          <Routes>
+            <Route path="*" element={<ComingSoon />} />
+          </Routes>
         </BrowserRouter>
       </TooltipProvider>
     </BrandThemeProvider>
