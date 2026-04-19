@@ -86,7 +86,7 @@ const AppRoutes = () => {
         />
         <Route
           path="/"
-          element={isAuthenticated ? <Index /> : <Navigate to="/auth" replace />}
+          element={isAuthenticated ? <Index /> : <ComingSoon />}
         />
         <Route
           path="/campaigns"
@@ -114,7 +114,7 @@ const AppRoutes = () => {
         />
         <Route
           path="*"
-          element={isAuthenticated ? <NotFound /> : <Navigate to="/auth" replace />}
+          element={isAuthenticated ? <NotFound /> : <ComingSoon />}
         />
       </Routes>
     </Suspense>
@@ -128,9 +128,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="*" element={<ComingSoon />} />
-          </Routes>
+          <AppRoutes />
         </BrowserRouter>
       </TooltipProvider>
     </BrandThemeProvider>
