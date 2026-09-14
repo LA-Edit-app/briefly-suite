@@ -55,12 +55,15 @@ import type { AgencyMemberWithProfile } from "@/hooks/useAgencyMembers";
 const roleBadgeVariant = (role: string) => {
   if (role === "owner") return "default";
   if (role === "admin") return "secondary";
+  if (role === "talent_manager") return "secondary";
   return "outline";
 };
 
 const roleLabel = (role: string) => {
   if (role === "owner") return "Owner";
   if (role === "admin") return "Admin";
+  if (role === "talent_manager") return "Talent Manager";
+  if (role === "creator") return "Creator";
   return "Member";
 };
 
@@ -185,7 +188,7 @@ const AgencySettings = () => {
 
   const [agencyName, setAgencyName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<"admin" | "member">("member");
+  const [inviteRole, setInviteRole] = useState<"admin" | "talent_manager" | "creator" | "member">("member");
 
   // Sync agency name to local state when loaded
   const [agencyNameInitialized, setAgencyNameInitialized] = useState(false);
@@ -206,7 +209,7 @@ const AgencySettings = () => {
     );
   };
 
-  const handleRoleChange = (member: AgencyMemberWithProfile, newRole: "admin" | "member") => {
+  const handleRoleChange = (member: AgencyMemberWithProfile, newRole: "admin" | "talent_manager" | "creator" | "member") => {
     updateMemberRole.mutate(
       { agencyId: member.agency_id, userId: member.user_id, role: newRole },
       {
@@ -349,14 +352,16 @@ const AgencySettings = () => {
                           <Select
                             value={member.role}
                             onValueChange={(v) =>
-                              handleRoleChange(member, v as "admin" | "member")
+                              handleRoleChange(member, v as "admin" | "talent_manager" | "creator" | "member")
                             }
                           >
-                            <SelectTrigger className="h-8 w-28 text-xs">
+                            <SelectTrigger className="h-8 w-36 text-xs">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="talent_manager">Talent Manager</SelectItem>
+                              <SelectItem value="creator">Creator</SelectItem>
                               <SelectItem value="member">Member</SelectItem>
                             </SelectContent>
                           </Select>
@@ -659,17 +664,19 @@ const AgencySettings = () => {
                 onKeyDown={(e) => e.key === "Enter" && handleInvite()}
               />
             </div>
-            <div className="w-36 space-y-2">
+            <div className="w-44 space-y-2">
               <Label>Role</Label>
               <Select
                 value={inviteRole}
-                onValueChange={(v) => setInviteRole(v as "admin" | "member")}
+                onValueChange={(v) => setInviteRole(v as "admin" | "talent_manager" | "creator" | "member")}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="talent_manager">Talent Manager</SelectItem>
+                  <SelectItem value="creator">Creator</SelectItem>
                   <SelectItem value="member">Member</SelectItem>
                 </SelectContent>
               </Select>

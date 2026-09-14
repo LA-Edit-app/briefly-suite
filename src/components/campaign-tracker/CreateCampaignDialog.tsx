@@ -163,6 +163,7 @@ export const CreateCampaignDialog = ({
         brand_pos: values.brandPOs || null,
         payment_terms: values.paymentTerms || null,
         notes: values.notes || null,
+        custom_fields: Object.keys(customFields).length > 0 ? customFields : undefined,
       });
 
       toast.success("Campaign created");
