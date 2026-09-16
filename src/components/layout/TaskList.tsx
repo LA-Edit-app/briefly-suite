@@ -1,3 +1,4 @@
+// TaskList: sidebar task manager with My Tasks / Team Tasks sections
 import { useState } from "react";
 import { Plus, X, Check, Pencil, ArrowUp, ArrowDown, UserCheck, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
