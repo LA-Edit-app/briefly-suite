@@ -51,6 +51,7 @@ import {
 } from "@/hooks/useAgencyMembers";
 import { useAuth } from "@/hooks/useAuth";
 import type { AgencyMemberWithProfile } from "@/hooks/useAgencyMembers";
+import { useCreators } from "@/hooks/useCreators";
 
 const roleBadgeVariant = (role: string) => {
   if (role === "owner") return "default";
@@ -186,6 +187,12 @@ const AgencySettings = () => {
   const [editingNotes, setEditingNotes] = useState("");
   const [schemaSavePending, setSchemaSavePending] = useState(false);
 
+  const { data: creatorsRaw = [] } = useCreators();
+  const creators = creatorsRaw.map((c) => ({ id: c.id, name: c.name }));
+
+  // Per-member pending linked_creator_id when changing to creator role
+  const [pendingLinkedCreator, setPendingLinkedCreator] = useState<Record<string, string>>({});
+
   const [agencyName, setAgencyName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"admin" | "talent_manager" | "creator" | "member">("member");
@@ -210,10 +217,31 @@ const AgencySettings = () => {
   };
 
   const handleRoleChange = (member: AgencyMemberWithProfile, newRole: "admin" | "talent_manager" | "creator" | "member") => {
+    // Clear linked creator when switching away from creator role
+    const linkedCreatorId = newRole === "creator"
+      ? (pendingLinkedCreator[member.user_id] || (member as any).linked_creator_id || null)
+      : null;
+
     updateMemberRole.mutate(
-      { agencyId: member.agency_id, userId: member.user_id, role: newRole },
+      { agencyId: member.agency_id, userId: member.user_id, role: newRole, linkedCreatorId },
       {
-        onSuccess: () => toast.success("Role updated"),
+        onSuccess: () => {
+          toast.success("Role updated");
+          if (newRole !== "creator") {
+            setPendingLinkedCreator((prev) => { const n = { ...prev }; delete n[member.user_id]; return n; });
+          }
+        },
+        onError: (err) => toast.error(err.message),
+      }
+    );
+  };
+
+  const handleLinkedCreatorChange = (member: AgencyMemberWithProfile, creatorId: string) => {
+    setPendingLinkedCreator((prev) => ({ ...prev, [member.user_id]: creatorId }));
+    updateMemberRole.mutate(
+      { agencyId: member.agency_id, userId: member.user_id, role: "creator", linkedCreatorId: creatorId },
+      {
+        onSuccess: () => toast.success("Creator profile linked"),
         onError: (err) => toast.error(err.message),
       }
     );
@@ -342,29 +370,46 @@ const AgencySettings = () => {
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                         {isOwner || isCurrentUser ? (
                           <Badge variant={roleBadgeVariant(member.role)}>
                             {member.role === "owner" && <Shield className="w-3 h-3 mr-1" />}
                             {roleLabel(member.role)}
                           </Badge>
                         ) : (
-                          <Select
-                            value={member.role}
-                            onValueChange={(v) =>
-                              handleRoleChange(member, v as "admin" | "talent_manager" | "creator" | "member")
-                            }
-                          >
-                            <SelectTrigger className="h-8 w-36 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="admin">Admin</SelectItem>
-                              <SelectItem value="talent_manager">Talent Manager</SelectItem>
-                              <SelectItem value="creator">Creator</SelectItem>
-                              <SelectItem value="member">Member</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <>
+                            <Select
+                              value={member.role}
+                              onValueChange={(v) =>
+                                handleRoleChange(member, v as "admin" | "talent_manager" | "creator" | "member")
+                              }
+                            >
+                              <SelectTrigger className="h-8 w-36 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="talent_manager">Talent Manager</SelectItem>
+                                <SelectItem value="creator">Creator</SelectItem>
+                                <SelectItem value="member">Member</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {member.role === "creator" && creators.length > 0 && (
+                              <Select
+                                value={pendingLinkedCreator[member.user_id] ?? (member as any).linked_creator_id ?? ""}
+                                onValueChange={(v) => handleLinkedCreatorChange(member, v)}
+                              >
+                                <SelectTrigger className="h-8 w-40 text-xs">
+                                  <SelectValue placeholder="Link creator…" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {creators.map((c) => (
+                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </>
                         )}
 
                         {!isOwner && !isCurrentUser && currentRole === "owner" && (
