@@ -28,6 +28,7 @@ import { Separator } from "@/components/ui/separator";
 import { UserMinus, UserPlus, ShieldCheck, Shield, LayoutGrid, History, Plus, Pencil, Trash2, CheckCircle2, RotateCcw, Link2, Link2Off } from "lucide-react";
 import { useXeroConnection, useConnectXero, useDisconnectXero } from "@/hooks/useXeroConnection";
 import { ColumnSchemaEditor } from "@/components/agency-settings/ColumnSchemaEditor";
+import { AgencyLogoUpload } from "@/components/agency-settings/AgencyLogoUpload";
 import {
   useAgencySchemas,
   useCreateSchema,
@@ -321,6 +322,12 @@ const AgencySettings = () => {
               >
                 {updateAgency.isPending ? "Saving..." : "Save Changes"}
               </Button>
+              {agency && (
+                <>
+                  <Separator className="my-2" />
+                  <AgencyLogoUpload agency={agency} />
+                </>
+              )}
             </div>
           )}
         </div>
