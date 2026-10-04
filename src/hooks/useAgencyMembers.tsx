@@ -164,13 +164,21 @@ export const useUploadAgencyLogo = () => {
 
       if (updateError) {
         // Don't leave an orphaned file behind if the agency wasn't updated
-        await bucket.remove([path]);
+        try {
+          await bucket.remove([path]);
+        } catch {
+          // ignore — surface the original update error
+        }
         throw updateError;
       }
 
       // Best-effort: the new logo is already live, so a failed cleanup is harmless
-      const oldPath = logoPathFromUrl(agency.logo_url);
-      if (oldPath) await bucket.remove([oldPath]);
+      try {
+        const oldPath = logoPathFromUrl(agency.logo_url);
+        if (oldPath) await bucket.remove([oldPath]);
+      } catch {
+        // ignore
+      }
 
       return publicUrl;
     },
@@ -196,8 +204,12 @@ export const useRemoveAgencyLogo = () => {
       if (error) throw error;
 
       // Best-effort cleanup, as above
-      const path = logoPathFromUrl(agency.logo_url);
-      if (path) await supabase.storage.from(AGENCY_LOGO_BUCKET).remove([path]);
+      try {
+        const path = logoPathFromUrl(agency.logo_url);
+        if (path) await supabase.storage.from(AGENCY_LOGO_BUCKET).remove([path]);
+      } catch {
+        // ignore
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['current-agency'] });
