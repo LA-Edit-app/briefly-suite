@@ -30,7 +30,7 @@ export function AgencyBrand({ collapsed }: AgencyBrandProps) {
       <div className="flex items-center gap-2">
         <img
           src={BRIEFLY_LOGO}
-          alt="Briefly"
+          alt={collapsed ? "Briefly" : ""}
           className="w-8 h-8 rounded-lg object-cover flex-shrink-0"
         />
         {!collapsed && (
@@ -45,6 +45,8 @@ export function AgencyBrand({ collapsed }: AgencyBrandProps) {
     return (
       <div
         className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 text-primary-foreground font-semibold text-sm"
+        role="img"
+        aria-label={agencyName || "Agency"}
         title={agencyName}
       >
         {agencyName.trim().charAt(0).toUpperCase() || "?"}
@@ -55,7 +57,7 @@ export function AgencyBrand({ collapsed }: AgencyBrandProps) {
   return (
     <img
       src={logoUrl}
-      alt={agencyName}
+      alt={agencyName || "Agency logo"}
       className="max-h-10 max-w-[11rem] object-contain"
       onError={() => setFailedUrl(logoUrl)}
     />
