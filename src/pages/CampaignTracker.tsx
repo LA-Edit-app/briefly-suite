@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/select";
 import { usePublishedSchema, DEFAULT_COLUMNS } from "@/hooks/useColumnSchemas";
 import type { ColumnDefinition } from "@/hooks/useColumnSchemas";
+import { useCurrentUserRole, useLinkedCreatorId } from "@/hooks/useAgencyMembers";
 
 const statusOptions = [
   { value: "Pending", label: "Pending" },
@@ -94,6 +95,10 @@ const CampaignTracker = () => {
   const updateCampaignMutation = useUpdateCampaign();
   const deleteCampaignMutation = useDeleteCampaign();
   const syncCampaignsFromXero = useSyncCampaignsFromXero();
+
+  const { data: currentRole } = useCurrentUserRole();
+  const { data: linkedCreatorId } = useLinkedCreatorId();
+  const isCreatorRole = currentRole === "creator";
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCreator, setSelectedCreator] = useState<Creator | null>(null);
@@ -238,6 +243,15 @@ const CampaignTracker = () => {
     navigate,
     selectedCreator,
   ]);
+
+  // Auto-select the linked creator for creator-role users
+  useEffect(() => {
+    if (!isCreatorRole || !linkedCreatorId || creators.length === 0) return;
+    const linked = creators.find((c) => c.id === linkedCreatorId);
+    if (linked && (!selectedCreator || selectedCreator.id !== linked.id)) {
+      setSelectedCreator(linked);
+    }
+  }, [isCreatorRole, linkedCreatorId, creators, selectedCreator]);
 
   useEffect(() => {
     if (!highlightedCampaignId || !selectedCreator) {
@@ -567,26 +581,30 @@ const CampaignTracker = () => {
   if (!selectedCreator) {
     return (
       <DashboardLayout title="Campaign Tracker">
-        <div className="flex justify-end mb-4">
-          <Button
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
-            onClick={() => setIsCreateCampaignOpen(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create Campaign
-          </Button>
-        </div>
+        {!isCreatorRole && (
+          <div className="flex justify-end mb-4">
+            <Button
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              onClick={() => setIsCreateCampaignOpen(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create Campaign
+            </Button>
+          </div>
+        )}
         <CreatorSelector
           creators={creatorsWithAnyCampaigns}
           onSelect={setSelectedCreator}
           emptyStateMessage="No creators with campaigns"
         />
-        <CreateCampaignDialog
-          open={isCreateCampaignOpen}
-          onOpenChange={setIsCreateCampaignOpen}
-          creators={creators}
-          activeColumns={activeColumns}
-        />
+        {!isCreatorRole && (
+          <CreateCampaignDialog
+            open={isCreateCampaignOpen}
+            onOpenChange={setIsCreateCampaignOpen}
+            creators={creators}
+            activeColumns={activeColumns}
+          />
+        )}
       </DashboardLayout>
     );
   }
@@ -596,14 +614,16 @@ const CampaignTracker = () => {
       <div className="space-y-5 lg:space-y-6 animate-fade-in">
         {/* Creator Header */}
         <div className="flex items-center gap-4 p-4 bg-card rounded-xl border border-border">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSelectedCreator(null)}
-            className="shrink-0"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
+          {!isCreatorRole && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSelectedCreator(null)}
+              className="shrink-0"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          )}
           <Avatar className="w-12 h-12 ring-2 ring-primary/20">
             <AvatarImage src={selectedCreator.avatar} alt={selectedCreator.name} />
             <AvatarFallback className="bg-primary/10 text-primary font-semibold">
@@ -672,38 +692,42 @@ const CampaignTracker = () => {
               accept=".xlsx,.xls,.csv"
               className="hidden"
             />
-            <Button
-              variant="outline"
-              onClick={() => selectedCreator && void syncFromXero(selectedCreator.id, "manual")}
-              className="gap-2"
-              disabled={syncCampaignsFromXero.isPending}
-            >
-              <RefreshCw className={`w-4 h-4 ${syncCampaignsFromXero.isPending ? "animate-spin" : ""}`} />
-              {syncCampaignsFromXero.isPending ? "Syncing Xero..." : "Sync Xero"}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => void downloadTemplate()}
-              className="gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Template
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-              className="gap-2"
-            >
-              <Upload className="w-4 h-4" />
-              Import Excel
-            </Button>
-            <Button
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-              onClick={() => setIsCreateCampaignOpen(true)}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Campaign
-            </Button>
+            {!isCreatorRole && (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => selectedCreator && void syncFromXero(selectedCreator.id, "manual")}
+                  className="gap-2"
+                  disabled={syncCampaignsFromXero.isPending}
+                >
+                  <RefreshCw className={`w-4 h-4 ${syncCampaignsFromXero.isPending ? "animate-spin" : ""}`} />
+                  {syncCampaignsFromXero.isPending ? "Syncing Xero..." : "Sync Xero"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => void downloadTemplate()}
+                  className="gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Template
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  Import Excel
+                </Button>
+                <Button
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  onClick={() => setIsCreateCampaignOpen(true)}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Campaign
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -758,14 +782,16 @@ const CampaignTracker = () => {
                       </Button>
                     </TableCell>
                     <TableCell className="w-10">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => void deleteRow(campaign.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      {!isCreatorRole && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => void deleteRow(campaign.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </TableCell>
                     {activeColumns.map((col) => {
                       const customVal = campaign.custom_fields?.[col.key] ?? "";
@@ -774,31 +800,31 @@ const CampaignTracker = () => {
                         case "brand":
                           return (
                             <TableCell key={col.key} className="font-medium">
-                              <EditableCell value={campaign.brand} onChange={(v) => void updateCampaign(campaign.id, "brand", v)} displayClassName="font-medium text-foreground" />
+                              <EditableCell value={campaign.brand} onChange={(v) => void updateCampaign(campaign.id, "brand", v)} displayClassName="font-medium text-foreground" readOnly={isCreatorRole} />
                             </TableCell>
                           );
                         case "launchDate":
                           return (
                             <TableCell key={col.key}>
-                              <DatePickerCell value={campaign.launchDate} onChange={(v) => void updateCampaign(campaign.id, "launchDate", v)} displayClassName="text-muted-foreground" />
+                              <DatePickerCell value={campaign.launchDate} onChange={(v) => void updateCampaign(campaign.id, "launchDate", v)} displayClassName="text-muted-foreground" readOnly={isCreatorRole} />
                             </TableCell>
                           );
                         case "activity":
                           return (
                             <TableCell key={col.key} className="max-w-[300px]">
-                              <EditableCell value={campaign.activity} onChange={(v) => void updateCampaign(campaign.id, "activity", v)} type="textarea" displayClassName="text-sm text-muted-foreground" />
+                              <EditableCell value={campaign.activity} onChange={(v) => void updateCampaign(campaign.id, "activity", v)} type="textarea" displayClassName="text-sm text-muted-foreground" readOnly={isCreatorRole} />
                             </TableCell>
                           );
                         case "liveDate":
                           return (
                             <TableCell key={col.key}>
-                              <DatePickerCell value={campaign.liveDate} onChange={(v) => void updateCampaign(campaign.id, "liveDate", v)} displayClassName="text-muted-foreground" />
+                              <DatePickerCell value={campaign.liveDate} onChange={(v) => void updateCampaign(campaign.id, "liveDate", v)} displayClassName="text-muted-foreground" readOnly={isCreatorRole} />
                             </TableCell>
                           );
                         case "agPrice":
                           return (
                             <TableCell key={col.key} className="text-right">
-                              <EditableCell value={campaign.agPrice} onChange={(v) => void updateCampaign(campaign.id, "agPrice", v)} type="number" formatAsCurrency displayClassName="font-medium text-foreground justify-end" />
+                              <EditableCell value={campaign.agPrice} onChange={(v) => void updateCampaign(campaign.id, "agPrice", v)} type="number" formatAsCurrency displayClassName="font-medium text-foreground justify-end" readOnly={isCreatorRole} />
                             </TableCell>
                           );
                         case "creatorFee":
@@ -812,19 +838,19 @@ const CampaignTracker = () => {
                         case "shot":
                           return (
                             <TableCell key={col.key}>
-                              <EditableCell value={campaign.shot} onChange={(v) => void updateCampaign(campaign.id, "shot", v)} displayClassName="text-muted-foreground" />
+                              <EditableCell value={campaign.shot} onChange={(v) => void updateCampaign(campaign.id, "shot", v)} displayClassName="text-muted-foreground" readOnly={isCreatorRole} />
                             </TableCell>
                           );
                         case "complete":
                           return (
                             <TableCell key={col.key}>
-                              <StatusSelect value={campaign.complete} onChange={(v) => void updateCampaign(campaign.id, "complete", v)} options={col.options ?? statusOptions} getStyle={getStatusStyle} placeholder="Status" />
+                              <StatusSelect value={campaign.complete} onChange={(v) => void updateCampaign(campaign.id, "complete", v)} options={col.options ?? statusOptions} getStyle={getStatusStyle} placeholder="Status" disabled={isCreatorRole} />
                             </TableCell>
                           );
                         case "detailStatus":
                           return (
                             <TableCell key={col.key}>
-                              <StatusSelect value={campaign.secondaryStatus || ""} onChange={(v) => void updateCampaign(campaign.id, "secondaryStatus", v)} options={col.options ?? secondaryStatusOptions} getStyle={getSecondaryStatusStyle} placeholder="Status" />
+                              <StatusSelect value={campaign.secondaryStatus || ""} onChange={(v) => void updateCampaign(campaign.id, "secondaryStatus", v)} options={col.options ?? secondaryStatusOptions} getStyle={getSecondaryStatusStyle} placeholder="Status" disabled={isCreatorRole} />
                             </TableCell>
                           );
                         case "invoiceNo":
@@ -840,7 +866,7 @@ const CampaignTracker = () => {
                                     <RefreshCw className="h-3 w-3 shrink-0 opacity-40" />
                                   </div>
                                 ) : (
-                                  <EditableCell value={campaign.invoiceNo} onChange={(v) => void updateCampaign(campaign.id, "invoiceNo", v)} displayClassName="text-muted-foreground" />
+                                  <EditableCell value={campaign.invoiceNo} onChange={(v) => void updateCampaign(campaign.id, "invoiceNo", v)} displayClassName="text-muted-foreground" readOnly={isCreatorRole} />
                                 )}
                                 <InvoiceStatusBadge status={campaign.invoiceStatus} />
                               </div>
@@ -849,31 +875,31 @@ const CampaignTracker = () => {
                         case "paid":
                           return (
                             <TableCell key={col.key}>
-                              <StatusSelect value={campaign.paid} onChange={(v) => void updateCampaign(campaign.id, "paid", v)} options={col.options ?? paidOptions} getStyle={getPaidStyle} placeholder="Payment" />
+                              <StatusSelect value={campaign.paid} onChange={(v) => void updateCampaign(campaign.id, "paid", v)} options={col.options ?? paidOptions} getStyle={getPaidStyle} placeholder="Payment" disabled={isCreatorRole} />
                             </TableCell>
                           );
                         case "includesVat":
                           return (
                             <TableCell key={col.key}>
-                              <StatusSelect value={campaign.includesVat} onChange={(v) => void updateCampaign(campaign.id, "includesVat", v)} options={col.options ?? vatOptions} getStyle={getVatStyle} placeholder="VAT" />
+                              <StatusSelect value={campaign.includesVat} onChange={(v) => void updateCampaign(campaign.id, "includesVat", v)} options={col.options ?? vatOptions} getStyle={getVatStyle} placeholder="VAT" disabled={isCreatorRole} />
                             </TableCell>
                           );
                         case "currency":
                           return (
                             <TableCell key={col.key}>
-                              <StatusSelect value={campaign.currency} onChange={(v) => void updateCampaign(campaign.id, "currency", v)} options={col.options ?? currencyOptions} getStyle={getCurrencyStyle} placeholder="Currency" />
+                              <StatusSelect value={campaign.currency} onChange={(v) => void updateCampaign(campaign.id, "currency", v)} options={col.options ?? currencyOptions} getStyle={getCurrencyStyle} placeholder="Currency" disabled={isCreatorRole} />
                             </TableCell>
                           );
                         case "brandPOs":
                           return (
                             <TableCell key={col.key}>
-                              <EditableCell value={campaign.brandPOs} onChange={(v) => void updateCampaign(campaign.id, "brandPOs", v)} displayClassName="text-muted-foreground" />
+                              <EditableCell value={campaign.brandPOs} onChange={(v) => void updateCampaign(campaign.id, "brandPOs", v)} displayClassName="text-muted-foreground" readOnly={isCreatorRole} />
                             </TableCell>
                           );
                         case "paymentTerms":
                           return (
                             <TableCell key={col.key}>
-                              <EditableCell value={campaign.paymentTerms} onChange={(v) => void updateCampaign(campaign.id, "paymentTerms", v)} displayClassName="text-muted-foreground" />
+                              <EditableCell value={campaign.paymentTerms} onChange={(v) => void updateCampaign(campaign.id, "paymentTerms", v)} displayClassName="text-muted-foreground" readOnly={isCreatorRole} />
                             </TableCell>
                           );
                         default:
@@ -890,6 +916,7 @@ const CampaignTracker = () => {
                                   options={col.options ?? []}
                                   getStyle={() => "bg-muted text-muted-foreground"}
                                   placeholder={col.label}
+                                  disabled={isCreatorRole}
                                 />
                               </TableCell>
                             );
@@ -904,6 +931,7 @@ const CampaignTracker = () => {
                                     void updateCampaignMutation.mutateAsync({ id: String(campaign.id), updates: { custom_fields: cf } });
                                   }}
                                   displayClassName="text-muted-foreground"
+                                  readOnly={isCreatorRole}
                                 />
                               </TableCell>
                             );
@@ -919,6 +947,7 @@ const CampaignTracker = () => {
                                 type={col.type === "currency" ? "number" : col.type === "number" ? "number" : "text"}
                                 formatAsCurrency={col.type === "currency"}
                                 displayClassName="text-muted-foreground"
+                                readOnly={isCreatorRole}
                               />
                             </TableCell>
                           );

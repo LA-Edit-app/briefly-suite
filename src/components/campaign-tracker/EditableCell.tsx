@@ -11,6 +11,7 @@ interface EditableCellProps {
   displayClassName?: string;
   placeholder?: string;
   formatAsCurrency?: boolean;
+  readOnly?: boolean;
 }
 
 export function EditableCell({
@@ -21,6 +22,7 @@ export function EditableCell({
   displayClassName,
   placeholder = "-",
   formatAsCurrency = false,
+  readOnly = false,
 }: EditableCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value?.toString() ?? "");
@@ -87,9 +89,10 @@ export function EditableCell({
 
   return (
     <div
-      onClick={() => setIsEditing(true)}
+      onClick={() => !readOnly && setIsEditing(true)}
       className={cn(
-        "cursor-pointer rounded px-2 py-1 hover:bg-muted/50 transition-colors min-h-[32px] flex items-center",
+        "rounded px-2 py-1 min-h-[32px] flex items-center",
+        !readOnly && "cursor-pointer hover:bg-muted/50 transition-colors",
         displayClassName
       )}
     >

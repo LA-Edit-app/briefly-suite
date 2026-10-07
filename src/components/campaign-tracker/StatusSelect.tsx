@@ -14,6 +14,7 @@ interface StatusSelectProps {
   options: { value: string; label: string }[];
   getStyle: (value: string) => string;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 export function StatusSelect({
@@ -22,9 +23,10 @@ export function StatusSelect({
   options,
   getStyle,
   placeholder = "Select...",
+  disabled = false,
 }: StatusSelectProps) {
   return (
-    <Select value={value || "_empty_"} onValueChange={(v) => onChange(v === "_empty_" ? "" : v)}>
+    <Select value={value || "_empty_"} onValueChange={(v) => onChange(v === "_empty_" ? "" : v)} disabled={disabled}>
       <SelectTrigger className="h-8 w-auto min-w-[100px] border-none bg-transparent hover:bg-muted/50 focus:ring-0">
         <SelectValue placeholder={placeholder}>
           {value ? (

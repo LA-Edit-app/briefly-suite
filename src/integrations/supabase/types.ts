@@ -134,18 +134,21 @@ export type Database = {
         Row: {
           agency_id: string
           created_at: string | null
+          linked_creator_id: string | null
           role: string
           user_id: string
         }
         Insert: {
           agency_id: string
           created_at?: string | null
+          linked_creator_id?: string | null
           role?: string
           user_id: string
         }
         Update: {
           agency_id?: string
           created_at?: string | null
+          linked_creator_id?: string | null
           role?: string
           user_id?: string
         }

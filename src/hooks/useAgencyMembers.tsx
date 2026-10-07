@@ -46,6 +46,18 @@ export const useCurrentUserRole = () => {
   });
 };
 
+// For creator-role users: the creator profile they are linked to
+export const useLinkedCreatorId = () => {
+  return useQuery({
+    queryKey: ['linked-creator-id'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('current_user_linked_creator_id');
+      if (error) throw error;
+      return data as string | null;
+    },
+  });
+};
+
 // Boolean: is the current user an owner or admin?
 export const useIsAgencyAdmin = () => {
   return useQuery({
@@ -125,7 +137,7 @@ export const useUpdateAgency = () => {
   });
 };
 
-// Update a member's role
+// Update a member's role (and optionally link to a creator profile)
 export const useUpdateMemberRole = () => {
   const queryClient = useQueryClient();
 
@@ -134,14 +146,19 @@ export const useUpdateMemberRole = () => {
       agencyId,
       userId,
       role,
+      linkedCreatorId,
     }: {
       agencyId: string;
       userId: string;
-      role: 'admin' | 'member';
+      role: 'owner' | 'admin' | 'talent_manager' | 'creator' | 'member';
+      linkedCreatorId?: string | null;
     }) => {
+      const update: Record<string, unknown> = { role };
+      if (linkedCreatorId !== undefined) update.linked_creator_id = linkedCreatorId;
+
       const { data, error } = await supabase
         .from('agency_members')
-        .update({ role })
+        .update(update)
         .eq('agency_id', agencyId)
         .eq('user_id', userId)
         .select()

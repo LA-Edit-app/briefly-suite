@@ -14,12 +14,14 @@ interface DatePickerCellProps {
   value: string;
   onChange: (value: string) => void;
   displayClassName?: string;
+  readOnly?: boolean;
 }
 
 export function DatePickerCell({
   value,
   onChange,
   displayClassName,
+  readOnly = false,
 }: DatePickerCellProps) {
   const [open, setOpen] = useState(false);
 
@@ -52,12 +54,14 @@ export function DatePickerCell({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={readOnly ? false : open} onOpenChange={readOnly ? undefined : setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
+          disabled={readOnly}
           className={cn(
-            "h-8 justify-start text-left font-normal px-2 hover:bg-muted/50",
+            "h-8 justify-start text-left font-normal px-2",
+            !readOnly && "hover:bg-muted/50",
             !value && "text-muted-foreground/50",
             displayClassName
           )}
