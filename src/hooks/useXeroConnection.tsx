@@ -20,7 +20,7 @@ export const useXeroConnection = () => {
 
 export const useConnectXero = () => {
   const { data: agency } = useQuery({
-    queryKey: ["current-agency"],
+    queryKey: ["current-agency-id"],
     queryFn: async () => {
       const { data } = await supabase.rpc("current_agency_id");
       return data as string | null;

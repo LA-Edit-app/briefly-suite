@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
+import { AGENCY_LOGO_BUCKET, buildLogoPath, logoPathFromUrl } from '@/lib/agencyLogo';
 
 type AgencyMemberRow = Database['public']['Tables']['agency_members']['Row'];
 type AgencyRow = Database['public']['Tables']['agencies']['Row'];
@@ -130,6 +131,85 @@ export const useUpdateAgency = () => {
 
       if (error) throw error;
       return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['current-agency'] });
+    },
+  });
+};
+
+// Upload a new agency logo, point the agency at it, then clean up the old file
+export const useUploadAgencyLogo = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ agency, file }: { agency: AgencyRow; file: File }) => {
+      const bucket = supabase.storage.from(AGENCY_LOGO_BUCKET);
+      const path = buildLogoPath(agency.id, file);
+
+      const { error: uploadError } = await bucket.upload(path, file, {
+        contentType: file.type,
+        upsert: false,
+      });
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = bucket.getPublicUrl(path);
+
+      const { error: updateError } = await supabase
+        .from('agencies')
+        .update({ logo_url: publicUrl })
+        .eq('id', agency.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        // Don't leave an orphaned file behind if the agency wasn't updated
+        try {
+          await bucket.remove([path]);
+        } catch {
+          // ignore — surface the original update error
+        }
+        throw updateError;
+      }
+
+      // Best-effort: the new logo is already live, so a failed cleanup is harmless
+      try {
+        const oldPath = logoPathFromUrl(agency.logo_url);
+        if (oldPath) await bucket.remove([oldPath]);
+      } catch {
+        // ignore
+      }
+
+      return publicUrl;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['current-agency'] });
+    },
+  });
+};
+
+// Remove the agency logo, reverting to the default Briefly logo
+export const useRemoveAgencyLogo = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ agency }: { agency: AgencyRow }) => {
+      const { error } = await supabase
+        .from('agencies')
+        .update({ logo_url: null })
+        .eq('id', agency.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Best-effort cleanup, as above
+      try {
+        const path = logoPathFromUrl(agency.logo_url);
+        if (path) await supabase.storage.from(AGENCY_LOGO_BUCKET).remove([path]);
+      } catch {
+        // ignore
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['current-agency'] });

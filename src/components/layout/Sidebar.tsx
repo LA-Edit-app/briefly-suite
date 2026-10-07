@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
-  Megaphone,
   Users,
 
   Settings,
@@ -12,6 +11,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AgencyBrand } from "./AgencyBrand";
 import { useIsAgencyAdmin } from "@/hooks/useAgencyMembers";
 import { useProfile } from "@/hooks/useDatabase";
 import { useAuth } from "@/hooks/useAuth";
@@ -70,13 +70,8 @@ export function Sidebar() {
 
       {/* Logo */}
       <div className="h-16 px-4 border-b border-sidebar-border flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-            <Megaphone className="w-4 h-4 text-primary-foreground" />
-          </div>
-          {!collapsed && (
-            <span className="font-semibold text-foreground">Briefly Suite</span>
-          )}
+        <div className="flex items-center min-w-0">
+          <AgencyBrand collapsed={collapsed} />
         </div>
         {!collapsed && (
           <button
