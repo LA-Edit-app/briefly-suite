@@ -157,6 +157,9 @@ const CampaignTracker = () => {
       brandPOs: campaign.brand_pos || "",
       paymentTerms: campaign.payment_terms || "",
       notes: campaign.notes || "",
+      campaign_comments: Array.isArray((campaign as unknown as Record<string, unknown>).campaign_comments)
+        ? ((campaign as unknown as Record<string, unknown>).campaign_comments as import("@/data/campaignTrackerData").CampaignComment[])
+        : [],
       content: [],
       custom_fields: ((campaign as unknown as Record<string, unknown>).custom_fields as Record<string, unknown> | undefined) ?? {},
     }));
@@ -355,6 +358,7 @@ const CampaignTracker = () => {
           brand_pos: updatedCampaign.brandPOs || null,
           payment_terms: updatedCampaign.paymentTerms || null,
           notes: updatedCampaign.notes || null,
+          campaign_comments: (updatedCampaign.campaign_comments ?? []) as unknown as import("@/integrations/supabase/types").Database["public"]["Tables"]["campaigns"]["Update"]["campaign_comments"],
         },
       });
       setSelectedCampaign(updatedCampaign);
@@ -974,6 +978,7 @@ const CampaignTracker = () => {
             }
           }}
           onUpdateCampaign={(campaign) => void updateFullCampaign(campaign)}
+          activeColumns={activeColumns}
           readOnly={isDetailReadOnly}
         />
       )}

@@ -19,6 +19,14 @@ export interface ContentItem {
   source?: string;
 }
 
+export interface CampaignComment {
+  id: string;
+  text: string;
+  authorName: string;
+  authorId: string;
+  createdAt: string;
+}
+
 export interface CampaignData {
   id: number;
   creatorId: string;
@@ -38,6 +46,7 @@ export interface CampaignData {
   paymentTerms: string;
   content?: ContentItem[];
   notes?: string;
+  campaign_comments?: CampaignComment[];
   secondaryStatus?: string;
   invoiceStatus?: string | null;
   xeroInvoiceId?: string | null;
