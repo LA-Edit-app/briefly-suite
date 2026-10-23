@@ -179,6 +179,7 @@ export type Database = {
           agency_id: string | null
           brand: string
           brand_pos: string | null
+          campaign_attachments: Json
           campaign_comments: Json
           campaign_status: string
           complete: boolean | null
@@ -209,6 +210,7 @@ export type Database = {
           agency_id?: string | null
           brand: string
           brand_pos?: string | null
+          campaign_attachments?: Json
           campaign_comments?: Json
           campaign_status?: string
           complete?: boolean | null
@@ -239,6 +241,7 @@ export type Database = {
           agency_id?: string | null
           brand?: string
           brand_pos?: string | null
+          campaign_attachments?: Json
           campaign_comments?: Json
           campaign_status?: string
           complete?: boolean | null

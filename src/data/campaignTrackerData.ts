@@ -27,6 +27,19 @@ export interface CampaignComment {
   createdAt: string;
 }
 
+export interface CampaignAttachment {
+  id: string;
+  fileName: string;
+  storagePath: string;
+  mimeType: string;
+  sizeBytes: number;
+  comment?: string;
+  contentType?: string;
+  uploadedById: string;
+  uploadedByName: string;
+  uploadedAt: string;
+}
+
 export interface CampaignData {
   id: number;
   creatorId: string;
@@ -47,6 +60,7 @@ export interface CampaignData {
   content?: ContentItem[];
   notes?: string;
   campaign_comments?: CampaignComment[];
+  campaign_attachments?: CampaignAttachment[];
   secondaryStatus?: string;
   invoiceStatus?: string | null;
   xeroInvoiceId?: string | null;
