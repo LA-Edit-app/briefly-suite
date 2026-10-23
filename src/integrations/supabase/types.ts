@@ -628,8 +628,10 @@ export type Database = {
           completed: boolean | null
           created_at: string | null
           created_by: string | null
+          description: string | null
           due_date: string | null
           id: string
+          priority: string
           related_campaign_id: string | null
           related_creator_id: string | null
           sort_order: number
@@ -642,8 +644,10 @@ export type Database = {
           completed?: boolean | null
           created_at?: string | null
           created_by?: string | null
+          description?: string | null
           due_date?: string | null
           id?: string
+          priority?: string
           related_campaign_id?: string | null
           related_creator_id?: string | null
           sort_order?: number
@@ -656,8 +660,10 @@ export type Database = {
           completed?: boolean | null
           created_at?: string | null
           created_by?: string | null
+          description?: string | null
           due_date?: string | null
           id?: string
+          priority?: string
           related_campaign_id?: string | null
           related_creator_id?: string | null
           sort_order?: number
