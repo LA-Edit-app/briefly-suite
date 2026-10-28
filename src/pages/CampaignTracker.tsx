@@ -160,6 +160,9 @@ const CampaignTracker = () => {
       campaign_comments: Array.isArray((campaign as unknown as Record<string, unknown>).campaign_comments)
         ? ((campaign as unknown as Record<string, unknown>).campaign_comments as import("@/data/campaignTrackerData").CampaignComment[])
         : [],
+      campaign_attachments: Array.isArray((campaign as unknown as Record<string, unknown>).campaign_attachments)
+        ? ((campaign as unknown as Record<string, unknown>).campaign_attachments as import("@/data/campaignTrackerData").CampaignAttachment[])
+        : [],
       content: [],
       custom_fields: ((campaign as unknown as Record<string, unknown>).custom_fields as Record<string, unknown> | undefined) ?? {},
     }));
@@ -359,6 +362,7 @@ const CampaignTracker = () => {
           payment_terms: updatedCampaign.paymentTerms || null,
           notes: updatedCampaign.notes || null,
           campaign_comments: (updatedCampaign.campaign_comments ?? []) as unknown as import("@/integrations/supabase/types").Database["public"]["Tables"]["campaigns"]["Update"]["campaign_comments"],
+          campaign_attachments: (updatedCampaign.campaign_attachments ?? []) as unknown as import("@/integrations/supabase/types").Database["public"]["Tables"]["campaigns"]["Update"]["campaign_attachments"],
         },
       });
       setSelectedCampaign(updatedCampaign);
