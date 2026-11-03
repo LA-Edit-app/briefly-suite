@@ -62,8 +62,11 @@ type XeroSyncResponse = {
 
 // Get all campaigns with creator info
 export const useCampaigns = () => {
+  const { data: agencyId } = useAgencyId();
+
   return useQuery({
-    queryKey: ['campaigns'],
+    queryKey: ['campaigns', agencyId],
+    enabled: !!agencyId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('campaigns')
@@ -77,6 +80,7 @@ export const useCampaigns = () => {
           ),
           content_items (*)
         `)
+        .eq('agency_id', agencyId!)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -87,8 +91,10 @@ export const useCampaigns = () => {
 
 // Get campaigns for a specific creator
 export const useCreatorCampaigns = (creatorId: string | undefined) => {
+  const { data: agencyId } = useAgencyId();
+
   return useQuery({
-    queryKey: ['campaigns', 'creator', creatorId],
+    queryKey: ['campaigns', 'creator', creatorId, agencyId],
     queryFn: async () => {
       if (!creatorId) throw new Error('Creator ID is required');
 
@@ -105,12 +111,13 @@ export const useCreatorCampaigns = (creatorId: string | undefined) => {
           content_items (*)
         `)
         .eq('creator_id', creatorId)
+        .eq('agency_id', agencyId!)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data as CampaignWithRelations[];
     },
-    enabled: !!creatorId,
+    enabled: !!creatorId && !!agencyId,
   });
 };
 
@@ -175,12 +182,16 @@ export const useCampaignsByBrand = (brand: string | undefined) => {
 
 // Get campaign statistics
 export const useCampaignStats = () => {
+  const { data: agencyId } = useAgencyId();
+
   return useQuery({
-    queryKey: ['campaigns', 'stats'],
+    queryKey: ['campaigns', 'stats', agencyId],
+    enabled: !!agencyId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('campaigns')
-        .select('id, campaign_status, creator_id, ag_price, currency');
+        .select('id, campaign_status, creator_id, ag_price, currency')
+        .eq('agency_id', agencyId!);
 
       if (error) throw error;
 
@@ -201,12 +212,16 @@ export const useCampaignStats = () => {
 };
 
 export const useRevenueByMonth = () => {
+  const { data: agencyId } = useAgencyId();
+
   return useQuery({
-    queryKey: ['campaigns', 'revenue-by-month'],
+    queryKey: ['campaigns', 'revenue-by-month', agencyId],
+    enabled: !!agencyId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('campaigns')
-        .select('created_at, ag_price, complete');
+        .select('created_at, ag_price, complete')
+        .eq('agency_id', agencyId!);
 
       if (error) throw error;
 
@@ -227,8 +242,11 @@ export interface CampaignEvent {
 }
 
 export const useUpcomingCampaignEvents = () => {
+  const { data: agencyId } = useAgencyId();
+
   return useQuery({
-    queryKey: ['campaigns', 'upcoming-events'],
+    queryKey: ['campaigns', 'upcoming-events', agencyId],
+    enabled: !!agencyId,
     queryFn: async () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -247,6 +265,7 @@ export const useUpcomingCampaignEvents = () => {
             email
           )
         `)
+        .eq('agency_id', agencyId!)
         // Fetch all campaigns — filter by date client-side because dates may be
         // stored in "dd MMM yyyy" text format which Supabase can't reliably compare
         // against an ISO string.
@@ -349,8 +368,11 @@ export const useAllCalendarEvents = () => {
 };
 
 export const useRecentCampaigns = (limit = 5) => {
+  const { data: agencyId } = useAgencyId();
+
   return useQuery({
-    queryKey: ['campaigns', 'recent', limit],
+    queryKey: ['campaigns', 'recent', limit, agencyId],
+    enabled: !!agencyId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('campaigns')
@@ -368,6 +390,7 @@ export const useRecentCampaigns = (limit = 5) => {
             name
           )
         `)
+        .eq('agency_id', agencyId!)
         .order('created_at', { ascending: false })
         .limit(limit);
 
@@ -380,12 +403,16 @@ export const useRecentCampaigns = (limit = 5) => {
 
 // Get active campaign count per creator (map: creator_id -> count)
 export const useActiveCampaignsPerCreator = () => {
+  const { data: agencyId } = useAgencyId();
+
   return useQuery({
-    queryKey: ['campaigns', 'per-creator-active'],
+    queryKey: ['campaigns', 'per-creator-active', agencyId],
+    enabled: !!agencyId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('campaigns')
-        .select('creator_id, campaign_status');
+        .select('creator_id, campaign_status')
+        .eq('agency_id', agencyId!);
 
       if (error) throw error;
 
