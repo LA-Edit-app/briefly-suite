@@ -33,11 +33,18 @@ export function Sidebar() {
   const { data: isAdmin } = useIsAgencyAdmin();
   const isPlatformAdmin = useIsPlatformAdmin();
 
-  const navItems = [
-    ...baseNavItems,
-    ...(isAdmin ? [{ icon: Building2, label: "Agency Settings", path: "/agency-settings" }] : []),
-    ...(isPlatformAdmin ? [{ icon: ShieldCheck, label: "Platform Admin", path: "/platform-admin" }] : []),
-  ];
+  const isPlatformAdminOnly = isPlatformAdmin && !profile?.agency_id;
+
+  const navItems = isPlatformAdminOnly
+    ? [
+        { icon: Settings, label: "Profile Settings", path: "/settings" },
+        { icon: ShieldCheck, label: "Platform Admin", path: "/platform-admin" },
+      ]
+    : [
+        ...baseNavItems,
+        ...(isAdmin ? [{ icon: Building2, label: "Agency Settings", path: "/agency-settings" }] : []),
+        ...(isPlatformAdmin ? [{ icon: ShieldCheck, label: "Platform Admin", path: "/platform-admin" }] : []),
+      ];
 
   const displayName =
     [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") ||
