@@ -27,12 +27,16 @@ export type CustomEventUpdate = Partial<CustomEventInsert>;
 
 // Hook to fetch custom events
 export const useCustomEvents = () => {
+  const { data: agencyId } = useAgencyId();
+
   return useQuery({
-    queryKey: ["custom-events"],
+    queryKey: ["custom-events", agencyId],
+    enabled: !!agencyId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("custom_events")
         .select("*")
+        .eq("agency_id", agencyId!)
         .order("event_date", { ascending: true });
 
       if (error) throw error;

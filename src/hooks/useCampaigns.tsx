@@ -349,8 +349,11 @@ export const useAllCalendarEvents = () => {
 };
 
 export const useRecentCampaigns = (limit = 5) => {
+  const { data: agencyId } = useAgencyId();
+
   return useQuery({
-    queryKey: ['campaigns', 'recent', limit],
+    queryKey: ['campaigns', 'recent', limit, agencyId],
+    enabled: !!agencyId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('campaigns')
@@ -368,6 +371,7 @@ export const useRecentCampaigns = (limit = 5) => {
             name
           )
         `)
+        .eq('agency_id', agencyId!)
         .order('created_at', { ascending: false })
         .limit(limit);
 
