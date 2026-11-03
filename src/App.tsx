@@ -1,8 +1,9 @@
-import { Suspense, lazy, useEffect } from "react";
+import React, { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useDatabase";
 import { BrandThemeProvider } from "@/context/BrandThemeContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
@@ -22,6 +23,17 @@ const XeroCallback = lazy(() => import("./pages/XeroCallback"));
 const queryClient = new QueryClient();
 
 const RouteFallback = () => <div className="min-h-screen bg-background" />;
+
+// Redirects platform admins who have no agency to /platform-admin.
+// Regular agency users pass through unchanged.
+const AgencyRoute = ({ element }: { element: React.ReactElement }) => {
+  const { data: profile, isLoading } = useProfile();
+  if (isLoading) return <RouteFallback />;
+  if (profile?.is_platform_admin && !profile?.agency_id) {
+    return <Navigate to="/platform-admin" replace />;
+  }
+  return element;
+};
 
 const AppRoutes = () => {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
@@ -87,19 +99,19 @@ const AppRoutes = () => {
         />
         <Route
           path="/"
-          element={isAuthenticated ? <Index /> : <ComingSoon />}
+          element={isAuthenticated ? <AgencyRoute element={<Index />} /> : <ComingSoon />}
         />
         <Route
           path="/campaigns"
-          element={isAuthenticated ? <Campaigns /> : <Navigate to="/auth" replace />}
+          element={isAuthenticated ? <AgencyRoute element={<Campaigns />} /> : <Navigate to="/auth" replace />}
         />
         <Route
           path="/campaign-tracker"
-          element={isAuthenticated ? <CampaignTracker /> : <Navigate to="/auth" replace />}
+          element={isAuthenticated ? <AgencyRoute element={<CampaignTracker />} /> : <Navigate to="/auth" replace />}
         />
         <Route
           path="/creators"
-          element={isAuthenticated ? <Creators /> : <Navigate to="/auth" replace />}
+          element={isAuthenticated ? <AgencyRoute element={<Creators />} /> : <Navigate to="/auth" replace />}
         />
         <Route
           path="/analytics"
@@ -111,7 +123,7 @@ const AppRoutes = () => {
         />
         <Route
           path="/agency-settings"
-          element={isAuthenticated ? <AgencySettings /> : <Navigate to="/auth" replace />}
+          element={isAuthenticated ? <AgencyRoute element={<AgencySettings />} /> : <Navigate to="/auth" replace />}
         />
         <Route
           path="/platform-admin"
