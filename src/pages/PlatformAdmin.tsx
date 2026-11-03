@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,10 +17,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Building2, Users, ClipboardList, Search, ShieldCheck } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Building2, Users, ClipboardList, Search, ShieldCheck, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { useIsPlatformAdmin, useAllAgencies, useToggleAgencyStatus } from "@/hooks/usePlatformAdmin";
+import { useIsPlatformAdmin, useAllAgencies, useToggleAgencyStatus, useCreateAgency, type AgencyRow } from "@/hooks/usePlatformAdmin";
 import { useProfile } from "@/hooks/useDatabase";
+import { AgencySheet } from "@/components/platform-admin/AgencySheet";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -31,12 +40,34 @@ export default function PlatformAdmin() {
   const isPlatformAdmin = useIsPlatformAdmin();
   const { data: agencies = [], isLoading, error } = useAllAgencies();
   const toggleStatus = useToggleAgencyStatus();
+  const createAgency = useCreateAgency();
 
   const [search, setSearch] = useState("");
+  const [selectedAgency, setSelectedAgency] = useState<AgencyRow | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [newAgencyOpen, setNewAgencyOpen] = useState(false);
+  const [newAgencyName, setNewAgencyName] = useState("");
 
   // Wait for profile to load before deciding access
   if (profileLoading) return <div className="min-h-screen bg-background" />;
   if (!isPlatformAdmin) return <Navigate to="/" replace />;
+
+  const handleCreateAgency = async () => {
+    if (!newAgencyName.trim()) return;
+    try {
+      await createAgency.mutateAsync({ name: newAgencyName });
+      setNewAgencyOpen(false);
+      setNewAgencyName("");
+      toast.success("Agency created");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to create agency");
+    }
+  };
+
+  const handleRowClick = (agency: AgencyRow) => {
+    setSelectedAgency(agency);
+    setSheetOpen(true);
+  };
 
   const filtered = agencies.filter((a) =>
     a.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -101,14 +132,19 @@ export default function PlatformAdmin() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between gap-3">
               <CardTitle className="text-base font-semibold">Agencies</CardTitle>
-              <div className="relative w-56">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                <Input
-                  placeholder="Search name or owner…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="h-8 pl-8 text-sm"
-                />
+              <div className="flex items-center gap-2">
+                <div className="relative w-48">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Search name or owner…"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="h-8 pl-8 text-sm"
+                  />
+                </div>
+                <Button size="sm" className="h-8 gap-1 text-xs" onClick={() => setNewAgencyOpen(true)}>
+                  <Plus className="w-3.5 h-3.5" /> New Agency
+                </Button>
               </div>
             </div>
           </CardHeader>
@@ -151,7 +187,11 @@ export default function PlatformAdmin() {
                         : "—";
 
                       return (
-                        <tr key={agency.id} className="group hover:bg-muted/40 transition-colors">
+                        <tr
+                          key={agency.id}
+                          className="group hover:bg-muted/40 transition-colors cursor-pointer"
+                          onClick={() => handleRowClick(agency)}
+                        >
                           <td className="py-2.5 pr-4">
                             <div className="flex items-center gap-2">
                               <div className="w-7 h-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
@@ -181,7 +221,7 @@ export default function PlatformAdmin() {
                               {agency.is_active ? "Active" : "Suspended"}
                             </Badge>
                           </td>
-                          <td className="py-2.5 text-right">
+                          <td className="py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button
@@ -226,5 +266,44 @@ export default function PlatformAdmin() {
         </Card>
       </div>
     </DashboardLayout>
+
+      {/* Agency detail sheet */}
+      <AgencySheet
+        agency={selectedAgency}
+        open={sheetOpen}
+        onOpenChange={(o) => {
+          setSheetOpen(o);
+          if (!o) setSelectedAgency(null);
+        }}
+      />
+
+      {/* New Agency dialog */}
+      <Dialog open={newAgencyOpen} onOpenChange={setNewAgencyOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>New Agency</DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            <Label htmlFor="na-name" className="text-xs">Agency name *</Label>
+            <Input
+              id="na-name"
+              placeholder="Acme Agency"
+              value={newAgencyName}
+              onChange={(e) => setNewAgencyName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && void handleCreateAgency()}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setNewAgencyOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => void handleCreateAgency()}
+              disabled={!newAgencyName.trim() || createAgency.isPending}
+            >
+              {createAgency.isPending ? "Creating…" : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
   );
 }
