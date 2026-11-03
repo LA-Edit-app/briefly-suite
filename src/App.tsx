@@ -24,12 +24,13 @@ const queryClient = new QueryClient();
 
 const RouteFallback = () => <div className="min-h-screen bg-background" />;
 
-// Redirects platform admins who have no agency to /platform-admin.
-// Regular agency users pass through unchanged.
+// Redirects platform admins to /platform-admin for all agency-scoped routes.
+// Platform admins are Briefly staff — they use the Platform Admin panel, not
+// the agency dashboard (even when they happen to have an agency record).
 const AgencyRoute = ({ element }: { element: React.ReactElement }) => {
   const { data: profile, isLoading } = useProfile();
   if (isLoading) return <RouteFallback />;
-  if (profile?.is_platform_admin && !profile?.agency_id) {
+  if (profile?.is_platform_admin) {
     return <Navigate to="/platform-admin" replace />;
   }
   return element;

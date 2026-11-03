@@ -33,7 +33,7 @@ export function Sidebar() {
   const { data: isAdmin } = useIsAgencyAdmin();
   const isPlatformAdmin = useIsPlatformAdmin();
 
-  const isPlatformAdminOnly = isPlatformAdmin && !profile?.agency_id;
+  const isPlatformAdminOnly = isPlatformAdmin;
 
   const navItems = isPlatformAdminOnly
     ? [
