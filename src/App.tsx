@@ -14,6 +14,7 @@ const CampaignTracker = lazy(() => import("./pages/CampaignTracker"));
 const Creators = lazy(() => import("./pages/Creators"));
 const Settings = lazy(() => import("./pages/Settings"));
 const AgencySettings = lazy(() => import("./pages/AgencySettings"));
+const PlatformAdmin = lazy(() => import("./pages/PlatformAdmin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Auth = lazy(() => import("./pages/Auth"));
 const XeroCallback = lazy(() => import("./pages/XeroCallback"));
@@ -65,6 +66,7 @@ const AppRoutes = () => {
           <Route path="/analytics" element={<Navigate to="/" replace />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/agency-settings" element={<AgencySettings />} />
+          <Route path="/platform-admin" element={<PlatformAdmin />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
@@ -110,6 +112,10 @@ const AppRoutes = () => {
         <Route
           path="/agency-settings"
           element={isAuthenticated ? <AgencySettings /> : <Navigate to="/auth" replace />}
+        />
+        <Route
+          path="/platform-admin"
+          element={isAuthenticated ? <PlatformAdmin /> : <Navigate to="/auth" replace />}
         />
         <Route
           path="*"

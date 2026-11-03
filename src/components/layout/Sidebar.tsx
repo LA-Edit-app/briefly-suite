@@ -3,18 +3,19 @@ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
-
   Settings,
   Building2,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AgencyBrand } from "./AgencyBrand";
 import { useIsAgencyAdmin } from "@/hooks/useAgencyMembers";
 import { useProfile } from "@/hooks/useDatabase";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsPlatformAdmin } from "@/hooks/usePlatformAdmin";
 
 const baseNavItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
@@ -30,13 +31,13 @@ export function Sidebar() {
   const { user } = useAuth();
   const { data: profile } = useProfile();
   const { data: isAdmin } = useIsAgencyAdmin();
+  const isPlatformAdmin = useIsPlatformAdmin();
 
-  const navItems = isAdmin
-    ? [
-        ...baseNavItems,
-        { icon: Building2, label: "Agency Settings", path: "/agency-settings" },
-      ]
-    : baseNavItems;
+  const navItems = [
+    ...baseNavItems,
+    ...(isAdmin ? [{ icon: Building2, label: "Agency Settings", path: "/agency-settings" }] : []),
+    ...(isPlatformAdmin ? [{ icon: ShieldCheck, label: "Platform Admin", path: "/platform-admin" }] : []),
+  ];
 
   const displayName =
     [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") ||
