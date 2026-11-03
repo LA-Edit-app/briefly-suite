@@ -88,6 +88,7 @@ export default function PlatformAdmin() {
   };
 
   return (
+    <>
     <DashboardLayout title="Platform Admin">
       <div className="space-y-6 animate-fade-in">
 
@@ -305,5 +306,6 @@ export default function PlatformAdmin() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </>
   );
 }
