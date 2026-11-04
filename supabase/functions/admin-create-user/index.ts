@@ -82,7 +82,12 @@ Deno.serve(async (req) => {
 
     if (inviteError) throw inviteError;
 
-    // Update the invitation with name hints in metadata (stored via user metadata)
+    const { data: agency } = await adminClient
+      .from("agencies")
+      .select("name")
+      .eq("id", agencyId)
+      .maybeSingle();
+
     const appUrl = Deno.env.get("APP_URL") ?? supabaseUrl;
 
     const { error: emailError } = await adminClient.auth.admin.inviteUserByEmail(
@@ -91,6 +96,7 @@ Deno.serve(async (req) => {
         redirectTo: `${appUrl}/auth`,
         data: {
           invited_to_agency: agencyId,
+          agency_name: agency?.name ?? "",
           invited_role: role,
           first_name: firstName ?? "",
           last_name: lastName ?? "",
