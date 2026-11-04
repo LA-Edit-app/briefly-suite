@@ -143,6 +143,53 @@ export function useUpdateAgency() {
   });
 }
 
+function useInvalidateAgencyMembers() {
+  const queryClient = useQueryClient();
+  return (agencyId: string) => {
+    queryClient.invalidateQueries({ queryKey: ["platform-admin", "agency-members", agencyId] });
+    queryClient.invalidateQueries({ queryKey: ["platform-admin", "agencies"] });
+  };
+}
+
+export function useUpdateAgencyMember() {
+  const invalidate = useInvalidateAgencyMembers();
+
+  return useMutation({
+    mutationFn: async (args: {
+      agencyId: string;
+      userId: string;
+      role: string;
+      firstName: string;
+      lastName: string;
+    }) => {
+      const { error } = await supabase.rpc("platform_admin_update_member", {
+        p_agency_id: args.agencyId,
+        p_user_id: args.userId,
+        p_role: args.role,
+        p_first_name: args.firstName,
+        p_last_name: args.lastName,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_data, { agencyId }) => invalidate(agencyId),
+  });
+}
+
+export function useRemoveAgencyMember() {
+  const invalidate = useInvalidateAgencyMembers();
+
+  return useMutation({
+    mutationFn: async ({ agencyId, userId }: { agencyId: string; userId: string }) => {
+      const { error } = await supabase.rpc("platform_admin_remove_member", {
+        p_agency_id: agencyId,
+        p_user_id: userId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_data, { agencyId }) => invalidate(agencyId),
+  });
+}
+
 export function useAdminCreateUser() {
   const queryClient = useQueryClient();
 

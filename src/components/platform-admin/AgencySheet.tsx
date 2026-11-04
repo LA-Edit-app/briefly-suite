@@ -6,10 +6,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Users, Pencil, UserPlus } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Building2, Users, Pencil, UserPlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import type { AgencyRow } from "@/hooks/usePlatformAdmin";
-import { useAgencyMembers, useUpdateAgency, useAdminCreateUser } from "@/hooks/usePlatformAdmin";
+import type { AgencyRow, AgencyMemberRow } from "@/hooks/usePlatformAdmin";
+import {
+  useAgencyMembers,
+  useUpdateAgency,
+  useAdminCreateUser,
+  useUpdateAgencyMember,
+  useRemoveAgencyMember,
+} from "@/hooks/usePlatformAdmin";
 
 interface Props {
   agency: AgencyRow | null;
@@ -33,6 +49,12 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
   const { data: members = [], isLoading: membersLoading } = useAgencyMembers(agency?.id ?? null);
   const updateAgency = useUpdateAgency();
   const adminCreateUser = useAdminCreateUser();
+  const updateMember = useUpdateAgencyMember();
+  const removeMember = useRemoveAgencyMember();
+
+  const [editingMember, setEditingMember] = useState<AgencyMemberRow | null>(null);
+  const [memberForm, setMemberForm] = useState({ firstName: "", lastName: "", role: "member" });
+  const [removingMember, setRemovingMember] = useState<AgencyMemberRow | null>(null);
 
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState("");
@@ -82,6 +104,43 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
     }
   };
 
+  const handleEditMemberOpen = (m: AgencyMemberRow) => {
+    setMemberForm({
+      firstName: m.profile?.first_name ?? "",
+      lastName: m.profile?.last_name ?? "",
+      role: m.role,
+    });
+    setEditingMember(m);
+  };
+
+  const handleEditMemberSubmit = async () => {
+    if (!agency || !editingMember) return;
+    try {
+      await updateMember.mutateAsync({
+        agencyId: agency.id,
+        userId: editingMember.user_id,
+        role: memberForm.role,
+        firstName: memberForm.firstName,
+        lastName: memberForm.lastName,
+      });
+      setEditingMember(null);
+      toast.success("Member updated");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to update member");
+    }
+  };
+
+  const handleRemoveMember = async () => {
+    if (!agency || !removingMember) return;
+    try {
+      await removeMember.mutateAsync({ agencyId: agency.id, userId: removingMember.user_id });
+      setRemovingMember(null);
+      toast.success("Member removed from agency");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to remove member");
+    }
+  };
+
   if (!agency) return null;
 
   return (
@@ -89,32 +148,38 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
           <SheetHeader className="pb-4">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                  <Building2 className="w-4 h-4 text-primary" />
+            <div className="flex items-center gap-2 pr-8">
+              <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                <Building2 className="w-4 h-4 text-primary" />
+              </div>
+              <div className="min-w-0 text-left">
+                <div className="flex items-center gap-1">
+                  <SheetTitle className="text-base leading-tight truncate">{agency.name}</SheetTitle>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 shrink-0"
+                    onClick={handleRenameOpen}
+                    aria-label="Rename agency"
+                  >
+                    <Pencil className="w-3 h-3" />
+                  </Button>
                 </div>
-                <div>
-                  <SheetTitle className="text-base leading-tight">{agency.name}</SheetTitle>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                <div className="flex items-center gap-2 mt-0.5">
+                  <Badge
+                    variant="outline"
+                    className={
+                      agency.is_active
+                        ? "border-green-400/60 text-green-600 dark:text-green-500 text-[10px]"
+                        : "border-red-400/60 text-red-600 dark:text-red-400 text-[10px]"
+                    }
+                  >
+                    {agency.is_active ? "Active" : "Suspended"}
+                  </Badge>
+                  <p className="text-xs text-muted-foreground">
                     Created {agency.created_at ? new Date(agency.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—"}
                   </p>
                 </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Badge
-                  variant="outline"
-                  className={
-                    agency.is_active
-                      ? "border-green-400/60 text-green-600 dark:text-green-500 text-[10px]"
-                      : "border-red-400/60 text-red-600 dark:text-red-400 text-[10px]"
-                  }
-                >
-                  {agency.is_active ? "Active" : "Suspended"}
-                </Badge>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleRenameOpen}>
-                  <Pencil className="w-3.5 h-3.5" />
-                </Button>
               </div>
             </div>
           </SheetHeader>
@@ -159,7 +224,7 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
             {!membersLoading && members.length > 0 && (
               <div className="space-y-1">
                 {members.map((m) => (
-                  <div key={m.user_id} className="flex items-center gap-2.5 py-1.5 px-2 rounded-md hover:bg-muted/40">
+                  <div key={m.user_id} className="group flex items-center gap-2.5 py-1.5 px-2 rounded-md hover:bg-muted/40">
                     <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs font-medium shrink-0">
                       {initials(m.profile?.first_name ?? null, m.profile?.last_name ?? null, m.profile?.email ?? null)}
                     </div>
@@ -174,6 +239,28 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
                     <Badge variant="outline" className="text-[10px] shrink-0 capitalize">
                       {m.role}
                     </Badge>
+                    <div className="flex items-center shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleEditMemberOpen(m)}
+                        aria-label="Edit member"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      {m.role !== "owner" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => setRemovingMember(m)}
+                          aria-label="Remove member"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -205,6 +292,89 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit member dialog */}
+      <Dialog open={!!editingMember} onOpenChange={(o) => !o && setEditingMember(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Edit Member</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            {editingMember?.profile?.email && (
+              <p className="text-xs text-muted-foreground">{editingMember.profile.email}</p>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label htmlFor="em-first" className="text-xs">First name</Label>
+                <Input
+                  id="em-first"
+                  value={memberForm.firstName}
+                  onChange={(e) => setMemberForm((f) => ({ ...f, firstName: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="em-last" className="text-xs">Last name</Label>
+                <Input
+                  id="em-last"
+                  value={memberForm.lastName}
+                  onChange={(e) => setMemberForm((f) => ({ ...f, lastName: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Role</Label>
+              {memberForm.role === "owner" ? (
+                <p className="text-sm text-muted-foreground mt-1">Owner (cannot be changed)</p>
+              ) : (
+                <Select
+                  value={memberForm.role}
+                  onValueChange={(v) => setMemberForm((f) => ({ ...f, role: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="member">Member</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditingMember(null)}>Cancel</Button>
+            <Button onClick={() => void handleEditMemberSubmit()} disabled={updateMember.isPending}>
+              {updateMember.isPending ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Remove member confirmation */}
+      <AlertDialog open={!!removingMember} onOpenChange={(o) => !o && setRemovingMember(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove member?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {removingMember &&
+                `${displayName(removingMember.profile?.first_name ?? null, removingMember.profile?.last_name ?? null, removingMember.profile?.email ?? null)} will lose access to ${agency.name}. Their account is not deleted.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void handleRemoveMember();
+              }}
+              disabled={removeMember.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {removeMember.isPending ? "Removing…" : "Remove"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Add user dialog */}
       <Dialog open={addUserOpen} onOpenChange={setAddUserOpen}>
