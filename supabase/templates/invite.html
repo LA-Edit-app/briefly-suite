@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light only">
+  <title>You're invited to Briefly Suite</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f5f3fa; -webkit-text-size-adjust:100%;">
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0;">
+    {{ if .Data.agency_name }}Join {{ .Data.agency_name }} on Briefly Suite.{{ else }}Your Briefly Suite account is ready to set up.{{ end }}
+  </div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f5f3fa;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;">
+
+          <!-- Brand -->
+          <tr>
+            <td style="padding:0 0 24px 0;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="vertical-align:middle; padding-right:10px;">
+                    <img src="https://briefly-suite.vercel.app/email/briefly-logo.jpg" width="32" height="30" alt="" style="display:block; border:0; border-radius:8px;">
+                  </td>
+                  <td style="vertical-align:middle; font-family:Helvetica, Arial, sans-serif; font-size:17px; font-weight:700; color:#231f2e;">
+                    Briefly Suite
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Card -->
+          <tr>
+            <td style="background-color:#ffffff; border-radius:14px; border:1px solid #e9e5f2; padding:36px 32px;">
+              <h1 style="margin:0 0 16px 0; font-family:Helvetica, Arial, sans-serif; font-size:22px; line-height:30px; font-weight:700; color:#231f2e;">
+                {{ if .Data.agency_name }}You've been invited to join {{ .Data.agency_name }}{{ else }}You've been invited to Briefly Suite{{ end }}
+              </h1>
+              <p style="margin:0 0 12px 0; font-family:Helvetica, Arial, sans-serif; font-size:15px; line-height:24px; color:#4a4559;">
+                {{ if .Data.first_name }}Hi {{ .Data.first_name }},{{ else }}Hi there,{{ end }}
+              </p>
+              <p style="margin:0 0 28px 0; font-family:Helvetica, Arial, sans-serif; font-size:15px; line-height:24px; color:#4a4559;">
+                {{ if .Data.agency_name }}You've been added to <strong style="color:#231f2e;">{{ .Data.agency_name }}</strong> on Briefly Suite, where the team manages creator campaigns, briefs and invoicing in one place.{{ else }}An account has been created for you on Briefly Suite, where teams manage creator campaigns, briefs and invoicing in one place.{{ end }}
+                Accept the invite to set up your account.
+              </p>
+
+              <!-- Button -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" bgcolor="#7c3aed" style="border-radius:10px;">
+                    <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block; padding:13px 28px; font-family:Helvetica, Arial, sans-serif; font-size:15px; font-weight:600; color:#ffffff; text-decoration:none; border-radius:10px;">
+                      Accept invite
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:28px 0 6px 0; font-family:Helvetica, Arial, sans-serif; font-size:13px; line-height:20px; color:#7a748a;">
+                If the button doesn't work, copy this link into your browser:
+              </p>
+              <p style="margin:0; font-family:Helvetica, Arial, sans-serif; font-size:12px; line-height:18px; word-break:break-all;">
+                <a href="{{ .ConfirmationURL }}" target="_blank" style="color:#7c3aed; text-decoration:underline;">{{ .ConfirmationURL }}</a>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 8px 0 8px; font-family:Helvetica, Arial, sans-serif; font-size:12px; line-height:18px; color:#8f899e;">
+              This invite was sent to {{ .Email }}. The link can only be used once and expires after a short time. If you weren't expecting it, you can ignore this email.
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
