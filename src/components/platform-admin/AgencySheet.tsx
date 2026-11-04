@@ -25,6 +25,7 @@ import {
   useAdminCreateUser,
   useUpdateAgencyMember,
   useRemoveAgencyMember,
+  useAdminDeleteUser,
 } from "@/hooks/usePlatformAdmin";
 
 interface Props {
@@ -55,6 +56,10 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
   const [editingMember, setEditingMember] = useState<AgencyMemberRow | null>(null);
   const [memberForm, setMemberForm] = useState({ firstName: "", lastName: "", role: "member" });
   const [removingMember, setRemovingMember] = useState<AgencyMemberRow | null>(null);
+  const deleteUser = useAdminDeleteUser();
+  const [deletingMember, setDeletingMember] = useState<AgencyMemberRow | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const deleteConfirmTarget = deletingMember?.profile?.email ?? "DELETE";
 
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState("");
@@ -138,6 +143,23 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
       toast.success("Member removed from agency");
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Failed to remove member");
+    }
+  };
+
+  const handleDeleteOpen = (m: AgencyMemberRow) => {
+    setEditingMember(null);
+    setDeleteConfirm("");
+    setDeletingMember(m);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!agency || !deletingMember) return;
+    try {
+      await deleteUser.mutateAsync({ agencyId: agency.id, userId: deletingMember.user_id });
+      setDeletingMember(null);
+      toast.success("Account deleted");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete account");
     }
   };
 
@@ -341,6 +363,24 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
               )}
             </div>
           </div>
+          {editingMember && editingMember.role !== "owner" && (
+            <div className="border-t border-border pt-3">
+              <p className="text-xs font-medium text-destructive">Danger zone</p>
+              <div className="flex items-center justify-between gap-3 mt-1">
+                <p className="text-xs text-muted-foreground">
+                  Permanently delete this user's account and remove them from every agency.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => handleDeleteOpen(editingMember)}
+                >
+                  Delete account
+                </Button>
+              </div>
+            </div>
+          )}
           <DialogFooter>
             <Button variant="ghost" onClick={() => setEditingMember(null)}>Cancel</Button>
             <Button onClick={() => void handleEditMemberSubmit()} disabled={updateMember.isPending}>
@@ -371,6 +411,48 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {removeMember.isPending ? "Removing…" : "Remove"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete account confirmation */}
+      <AlertDialog open={!!deletingMember} onOpenChange={(o) => !o && setDeletingMember(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete account permanently?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This deletes the login for{" "}
+              <span className="font-medium text-foreground">
+                {deletingMember &&
+                  displayName(deletingMember.profile?.first_name ?? null, deletingMember.profile?.last_name ?? null, deletingMember.profile?.email ?? null)}
+              </span>{" "}
+              and removes them from every agency. Campaigns and tasks they created are kept. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-1.5">
+            <Label htmlFor="del-confirm" className="text-xs">
+              Type <span className="font-mono font-medium text-foreground">{deleteConfirmTarget}</span> to confirm
+            </Label>
+            <Input
+              id="del-confirm"
+              value={deleteConfirm}
+              onChange={(e) => setDeleteConfirm(e.target.value)}
+              autoComplete="off"
+              autoFocus
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void handleDeleteUser();
+              }}
+              disabled={deleteConfirm.trim().toLowerCase() !== deleteConfirmTarget.toLowerCase() || deleteUser.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteUser.isPending ? "Deleting…" : "Delete account"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
