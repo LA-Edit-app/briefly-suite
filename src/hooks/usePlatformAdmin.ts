@@ -144,6 +144,8 @@ export function useUpdateAgency() {
 }
 
 export function useAdminCreateUser() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async ({
       agencyId,
@@ -163,7 +165,11 @@ export function useAdminCreateUser() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      return data as { status: "added" | "invited" };
+      return { ...(data as { status: "added" | "invited" }), agencyId };
+    },
+    onSuccess: ({ agencyId }) => {
+      queryClient.invalidateQueries({ queryKey: ["platform-admin", "agency-members", agencyId] });
+      queryClient.invalidateQueries({ queryKey: ["platform-admin", "agencies"] });
     },
   });
 }
