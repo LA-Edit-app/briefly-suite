@@ -143,6 +143,19 @@ export function useUpdateAgency() {
   });
 }
 
+// On a non-2xx response functions.invoke returns a generic error; the
+// function's own message is in the response body.
+async function invokeAdminFunction<T>(name: string, body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke(name, { body });
+  if (error) {
+    const response = (error as { context?: Response }).context;
+    const payload = response ? await response.json().catch(() => null) : null;
+    throw new Error(payload?.error ?? error.message);
+  }
+  if (data?.error) throw new Error(data.error);
+  return data as T;
+}
+
 function useInvalidateAgencyMembers() {
   const queryClient = useQueryClient();
   return (agencyId: string) => {
@@ -190,6 +203,17 @@ export function useRemoveAgencyMember() {
   });
 }
 
+export function useAdminDeleteUser() {
+  const invalidate = useInvalidateAgencyMembers();
+
+  return useMutation({
+    mutationFn: async ({ userId }: { agencyId: string; userId: string }) => {
+      await invokeAdminFunction<{ status: "deleted" }>("admin-delete-user", { userId });
+    },
+    onSuccess: (_data, { agencyId }) => invalidate(agencyId),
+  });
+}
+
 export function useAdminCreateUser() {
   const queryClient = useQueryClient();
 
@@ -207,12 +231,10 @@ export function useAdminCreateUser() {
       lastName: string;
       role: "admin" | "member";
     }) => {
-      const { data, error } = await supabase.functions.invoke("admin-create-user", {
-        body: { agencyId, email, firstName, lastName, role },
+      const data = await invokeAdminFunction<{ status: "added" | "invited" }>("admin-create-user", {
+        agencyId, email, firstName, lastName, role,
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      return { ...(data as { status: "added" | "invited" }), agencyId };
+      return { ...data, agencyId };
     },
     onSuccess: ({ agencyId }) => {
       queryClient.invalidateQueries({ queryKey: ["platform-admin", "agency-members", agencyId] });
