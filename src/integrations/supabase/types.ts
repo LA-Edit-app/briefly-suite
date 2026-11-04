@@ -779,6 +779,20 @@ export type Database = {
         }[]
       }
       is_agency_admin: { Args: never; Returns: boolean }
+      platform_admin_remove_member: {
+        Args: { p_agency_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      platform_admin_update_member: {
+        Args: {
+          p_agency_id: string
+          p_first_name: string
+          p_last_name: string
+          p_role: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       seed_default_column_schema: {
         Args: { p_agency_id: string }
         Returns: undefined
@@ -915,5 +929,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-A new version of Supabase CLI is available: v2.107.0 (currently installed v2.75.0)
-We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
