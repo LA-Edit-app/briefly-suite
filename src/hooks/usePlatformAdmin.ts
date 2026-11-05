@@ -156,16 +156,13 @@ async function invokeAdminFunction<T>(name: string, body: Record<string, unknown
   return data as T;
 }
 
-function useInvalidateAgencyMembers() {
+function useInvalidatePlatformAdmin() {
   const queryClient = useQueryClient();
-  return (agencyId: string) => {
-    queryClient.invalidateQueries({ queryKey: ["platform-admin", "agency-members", agencyId] });
-    queryClient.invalidateQueries({ queryKey: ["platform-admin", "agencies"] });
-  };
+  return () => queryClient.invalidateQueries({ queryKey: ["platform-admin"] });
 }
 
 export function useUpdateAgencyMember() {
-  const invalidate = useInvalidateAgencyMembers();
+  const invalidate = useInvalidatePlatformAdmin();
 
   return useMutation({
     mutationFn: async (args: {
@@ -184,12 +181,12 @@ export function useUpdateAgencyMember() {
       });
       if (error) throw error;
     },
-    onSuccess: (_data, { agencyId }) => invalidate(agencyId),
+    onSuccess: () => invalidate(),
   });
 }
 
 export function useRemoveAgencyMember() {
-  const invalidate = useInvalidateAgencyMembers();
+  const invalidate = useInvalidatePlatformAdmin();
 
   return useMutation({
     mutationFn: async ({ agencyId, userId }: { agencyId: string; userId: string }) => {
@@ -199,18 +196,54 @@ export function useRemoveAgencyMember() {
       });
       if (error) throw error;
     },
-    onSuccess: (_data, { agencyId }) => invalidate(agencyId),
+    onSuccess: () => invalidate(),
+  });
+}
+
+export type UserStatus = "active" | "suspended" | "invited";
+
+export type PlatformUserRow = {
+  id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  is_platform_admin: boolean;
+  status: UserStatus;
+  created_at: string;
+  last_sign_in_at: string | null;
+  agencies: { id: string; name: string; role: string }[];
+};
+
+export function useAllUsers() {
+  return useQuery({
+    queryKey: ["platform-admin", "users"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("platform_admin_list_users");
+      if (error) throw error;
+      return (data ?? []) as unknown as PlatformUserRow[];
+    },
+  });
+}
+
+export function useSuspendUser() {
+  const invalidate = useInvalidatePlatformAdmin();
+
+  return useMutation({
+    mutationFn: async ({ userId, suspended }: { userId: string; suspended: boolean }) => {
+      await invokeAdminFunction<{ status: UserStatus }>("admin-suspend-user", { userId, suspended });
+    },
+    onSuccess: () => invalidate(),
   });
 }
 
 export function useAdminDeleteUser() {
-  const invalidate = useInvalidateAgencyMembers();
+  const invalidate = useInvalidatePlatformAdmin();
 
   return useMutation({
-    mutationFn: async ({ userId }: { agencyId: string; userId: string }) => {
+    mutationFn: async ({ userId }: { userId: string }) => {
       await invokeAdminFunction<{ status: "deleted" }>("admin-delete-user", { userId });
     },
-    onSuccess: (_data, { agencyId }) => invalidate(agencyId),
+    onSuccess: () => invalidate(),
   });
 }
 

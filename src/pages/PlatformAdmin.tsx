@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UsersTab } from "@/components/platform-admin/UsersTab";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +44,8 @@ export default function PlatformAdmin() {
   const toggleStatus = useToggleAgencyStatus();
   const createAgency = useCreateAgency();
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get("tab") === "users" ? "users" : "agencies";
   const [search, setSearch] = useState("");
   const [selectedAgency, setSelectedAgency] = useState<AgencyRow | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -82,8 +86,8 @@ export default function PlatformAdmin() {
     try {
       await toggleStatus.mutateAsync({ id, is_active: !currentlyActive });
       toast.success(currentlyActive ? "Agency suspended" : "Agency activated");
-    } catch (e: any) {
-      toast.error(e?.message || "Failed to update agency status");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to update agency status");
     }
   };
 
@@ -100,6 +104,20 @@ export default function PlatformAdmin() {
           </p>
         </div>
 
+        <Tabs
+          value={tab}
+          onValueChange={(v) => setSearchParams(v === "users" ? { tab: "users" } : {}, { replace: true })}
+        >
+          <TabsList>
+            <TabsTrigger value="agencies" className="gap-1.5">
+              <Building2 className="w-3.5 h-3.5" /> Agencies
+            </TabsTrigger>
+            <TabsTrigger value="users" className="gap-1.5">
+              <Users className="w-3.5 h-3.5" /> Users
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="agencies" className="space-y-6 mt-4">
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
@@ -265,6 +283,12 @@ export default function PlatformAdmin() {
             )}
           </CardContent>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="users" className="mt-4">
+            <UsersTab />
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
 

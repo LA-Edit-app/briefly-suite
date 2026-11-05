@@ -779,6 +779,20 @@ export type Database = {
         }[]
       }
       is_agency_admin: { Args: never; Returns: boolean }
+      platform_admin_list_users: {
+        Args: never
+        Returns: {
+          agencies: Json
+          created_at: string
+          email: string
+          first_name: string | null
+          id: string
+          is_platform_admin: boolean
+          last_name: string | null
+          last_sign_in_at: string | null
+          status: string
+        }[]
+      }
       platform_admin_remove_member: {
         Args: { p_agency_id: string; p_user_id: string }
         Returns: undefined
