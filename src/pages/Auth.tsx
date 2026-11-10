@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { PasswordInput } from "@/components/auth/PasswordInput";
 import { PasswordRules } from "@/components/auth/PasswordRules";
-import { initialAuthLinkError } from "@/lib/authLink";
+import { consumeAuthLinkError } from "@/lib/authLink";
 import { isPasswordValid, PASSWORD_RULES_MESSAGE } from "@/lib/password";
 import { z } from "zod";
 
@@ -45,7 +45,7 @@ export default function Auth() {
   }, [navigate]);
 
   useEffect(() => {
-    if (initialAuthLinkError) {
+    if (consumeAuthLinkError()) {
       toast({
         title: "This link has expired",
         description: "Invite and reset links only work once and expire after a while. Use \"Forgot password?\" to get a new one.",

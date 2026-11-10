@@ -12,7 +12,13 @@ const params = readHash();
 /** "invite", "recovery", etc. when the page was opened from an email link. */
 export const initialAuthLinkType: string | null = params.get("type");
 
-/** Set when the email link was expired or already used. */
-export const initialAuthLinkError: string | null = params.get("error_code")
-  ? params.get("error_description")?.replace(/\+/g, " ") ?? "This link is invalid or has expired."
+let linkError: string | null = params.get("error_code")
+  ? params.get("error_description") ?? "This link is invalid or has expired."
   : null;
+
+/** The expired/used-link error, if any. Returns it only once per page load. */
+export function consumeAuthLinkError(): string | null {
+  const error = linkError;
+  linkError = null;
+  return error;
+}
