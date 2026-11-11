@@ -12,6 +12,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { NotificationDebug } from "@/components/debug/NotificationDebug";
+import { PasswordInput } from "@/components/auth/PasswordInput";
+import { PasswordRules } from "@/components/auth/PasswordRules";
+import { isPasswordValid, PASSWORD_RULES_MESSAGE } from "@/lib/password";
 
 const Settings = () => {
   const { user } = useAuth();
@@ -59,7 +62,7 @@ const Settings = () => {
   const handleUpdatePassword = async () => {
     if (!newPassword) return toast.error("Enter a new password");
     if (newPassword !== confirmPassword) return toast.error("Passwords do not match");
-    if (newPassword.length < 8) return toast.error("Password must be at least 8 characters");
+    if (!isPasswordValid(newPassword)) return toast.error(PASSWORD_RULES_MESSAGE);
     setUpdatingPassword(true);
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setUpdatingPassword(false);
@@ -214,19 +217,19 @@ const Settings = () => {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="newPassword">New Password</Label>
-              <Input
+              <PasswordInput
                 id="newPassword"
-                type="password"
+                autoComplete="new-password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Min. 8 characters"
               />
+              {newPassword && <PasswordRules password={newPassword} />}
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm New Password</Label>
-              <Input
+              <PasswordInput
                 id="confirmPassword"
-                type="password"
+                autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Repeat new password"

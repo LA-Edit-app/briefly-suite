@@ -100,6 +100,9 @@ Deno.serve(async (req) => {
           invited_role: role,
           first_name: firstName ?? "",
           last_name: lastName ?? "",
+          // The invite link signs them in with a random password; the app
+          // asks them to create their own first.
+          needs_password: true,
         },
       },
     );

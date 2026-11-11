@@ -1,12 +1,14 @@
-import React, { Suspense, lazy, useEffect } from "react";
+import React, { Suspense, lazy, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useDatabase";
 import { BrandThemeProvider } from "@/context/BrandThemeContext";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { initialAuthLinkType } from "@/lib/authLink";
 import ComingSoon from "./pages/ComingSoon";
 
 const Index = lazy(() => import("./pages/Index"));
@@ -19,6 +21,7 @@ const PlatformAdmin = lazy(() => import("./pages/PlatformAdmin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Auth = lazy(() => import("./pages/Auth"));
 const XeroCallback = lazy(() => import("./pages/XeroCallback"));
+const SetPassword = lazy(() => import("./pages/SetPassword"));
 
 const queryClient = new QueryClient();
 
@@ -43,6 +46,33 @@ const AppRoutes = () => {
     import.meta.env.DEV && (import.meta.env.VITE_DEV_BYPASS_AUTH === "true" || isLocalSupabase);
   const { session, loading } = useAuth();
   const isAuthenticated = Boolean(session?.user);
+  const queryClient = useQueryClient();
+
+  // Opened from a forgot-password email: ask for the new password first.
+  const [recoveryPending, setRecoveryPending] = useState(initialAuthLinkType === "recovery");
+
+  // Invited users are signed in by the invite link with a password they don't
+  // know. The invite functions set this flag; saving a password clears it.
+  const needsPassword = session?.user?.user_metadata?.needs_password === true;
+  // Keeps the password screen up while saving: clearing the flag would
+  // otherwise show the dashboard for a moment before sign-out.
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  const savePassword = async (password: string) => {
+    setSavingPassword(true);
+    const { error } = await supabase.auth.updateUser({ password, data: { needs_password: false } });
+    if (error) {
+      setSavingPassword(false);
+      return error.message;
+    }
+    // Ask them to sign in with the new password, so they know it works. The
+    // /set-password route then sends them to /auth.
+    await supabase.auth.signOut();
+    setRecoveryPending(false);
+    queryClient.clear();
+    setSavingPassword(false);
+    return null;
+  };
 
   useEffect(() => {
     const warmRoutes = () => {
@@ -90,10 +120,31 @@ const AppRoutes = () => {
     return <div className="min-h-screen bg-background" />;
   }
 
+  if (isAuthenticated && (needsPassword || recoveryPending || savingPassword)) {
+    return (
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
+          <Route
+            path="/set-password"
+            element={
+              <SetPassword
+                mode={needsPassword ? "invite" : "reset"}
+                email={session?.user?.email}
+                onSave={savePassword}
+              />
+            }
+          />
+          <Route path="*" element={<Navigate to="/set-password" replace />} />
+        </Routes>
+      </Suspense>
+    );
+  }
+
   return (
     <Suspense fallback={<RouteFallback />}>
       <Routes>
         <Route path="/xero/callback" element={<XeroCallback />} />
+        <Route path="/set-password" element={<Navigate to={isAuthenticated ? "/" : "/auth"} replace />} />
         <Route
           path="/auth"
           element={isAuthenticated ? <Navigate to="/" replace /> : <Auth />}

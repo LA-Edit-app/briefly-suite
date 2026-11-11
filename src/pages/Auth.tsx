@@ -5,15 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { PasswordInput } from "@/components/auth/PasswordInput";
+import { PasswordRules } from "@/components/auth/PasswordRules";
+import { consumeAuthLinkError } from "@/lib/authLink";
+import { isPasswordValid, PASSWORD_RULES_MESSAGE } from "@/lib/password";
 import { z } from "zod";
 
-const authSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address" }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
-});
+const emailSchema = z.string().email({ message: "Please enter a valid email address" });
+
+type Mode = "login" | "signup" | "forgot";
 
 export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<Mode>("login");
+  const isLogin = mode === "login";
+  const [resetSent, setResetSent] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,19 +44,30 @@ export default function Auth() {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const validateForm = () => {
-    const result = authSchema.safeParse({ email, password });
-    if (!result.success) {
-      const fieldErrors: { email?: string; password?: string } = {};
-      result.error.errors.forEach((err) => {
-        if (err.path[0] === "email") fieldErrors.email = err.message;
-        if (err.path[0] === "password") fieldErrors.password = err.message;
+  useEffect(() => {
+    if (consumeAuthLinkError()) {
+      toast({
+        title: "This link has expired",
+        description: "Invite and reset links only work once and expire after a while. Use \"Forgot password?\" to get a new one.",
+        variant: "destructive",
       });
-      setErrors(fieldErrors);
-      return false;
     }
+  }, [toast]);
+
+  const switchMode = (next: Mode) => {
+    setMode(next);
     setErrors({});
-    return true;
+    setResetSent(false);
+  };
+
+  const validateForm = () => {
+    const fieldErrors: { email?: string; password?: string } = {};
+    const emailResult = emailSchema.safeParse(email);
+    if (!emailResult.success) fieldErrors.email = emailResult.error.errors[0].message;
+    if (mode === "login" && !password) fieldErrors.password = "Please enter your password";
+    if (mode === "signup" && !isPasswordValid(password)) fieldErrors.password = PASSWORD_RULES_MESSAGE;
+    setErrors(fieldErrors);
+    return Object.keys(fieldErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,7 +78,15 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      if (isLogin) {
+      if (mode === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: `${window.location.origin}/auth`,
+        });
+        // Same message whether or not the account exists, so the form can't
+        // be used to check which emails are registered.
+        if (error && error.status !== 400 && error.status !== 404) throw error;
+        setResetSent(true);
+      } else if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -86,7 +110,7 @@ export default function Auth() {
           title: "Account created!",
           description: "You can now log in with your credentials.",
         });
-        setIsLogin(true);
+        setMode("login");
       }
     } catch (error: any) {
       let message = error.message;
@@ -109,14 +133,28 @@ export default function Auth() {
         <div className="bg-card rounded-xl border border-border p-8 shadow-lg">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-foreground">
-              {isLogin ? "Welcome Back" : "Create Account"}
+              {mode === "login" ? "Welcome Back" : mode === "signup" ? "Create Account" : "Reset your password"}
             </h1>
             <p className="text-muted-foreground mt-2">
-              {isLogin
+              {mode === "login"
                 ? "Sign in to access your dashboard"
-                : "Sign up to get started"}
+                : mode === "signup"
+                  ? "Sign up to get started"
+                  : "Enter your email and we'll send you a link to choose a new password"}
             </p>
           </div>
+
+          {mode === "forgot" && resetSent ? (
+            <div className="space-y-4 text-center">
+              <p className="text-sm text-foreground">
+                If an account exists for <span className="font-medium">{email.trim()}</span>, a reset link is on its way.
+                Check your inbox and spam folder.
+              </p>
+              <Button type="button" variant="outline" className="w-full" onClick={() => switchMode("login")}>
+                Back to sign in
+              </Button>
+            </div>
+          ) : (
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -134,35 +172,58 @@ export default function Auth() {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
-              />
-              {errors.password && (
-                <p className="text-sm text-destructive">{errors.password}</p>
-              )}
-            </div>
+            {mode !== "forgot" && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  {isLogin && (
+                    <button
+                      type="button"
+                      onClick={() => switchMode("forgot")}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
+                <PasswordInput
+                  id="password"
+                  placeholder="••••••••"
+                  autoComplete={isLogin ? "current-password" : "new-password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                />
+                {mode === "signup" && <PasswordRules password={password} />}
+                {errors.password && (
+                  <p className="text-sm text-destructive">{errors.password}</p>
+                )}
+              </div>
+            )}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Loading..." : isLogin ? "Sign In" : "Sign Up"}
+              {loading
+                ? "Loading..."
+                : mode === "login"
+                  ? "Sign In"
+                  : mode === "signup"
+                    ? "Sign Up"
+                    : "Send reset link"}
             </Button>
           </form>
+          )}
 
           <div className="mt-6 text-center">
             <button
               type="button"
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => switchMode(isLogin ? "signup" : "login")}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               {isLogin
                 ? "Don't have an account? Sign up"
-                : "Already have an account? Sign in"}
+                : mode === "forgot"
+                  ? "Back to sign in"
+                  : "Already have an account? Sign in"}
             </button>
           </div>
         </div>

@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
 
     const { error: emailError } = await adminClient.auth.admin.inviteUserByEmail(normalizedEmail, {
       redirectTo: `${appUrl}/auth`,
-      data: { invited_to_agency: agencyId, invited_role: role },
+      data: { invited_to_agency: agencyId, invited_role: role, needs_password: true },
     });
 
     if (emailError) throw emailError;
