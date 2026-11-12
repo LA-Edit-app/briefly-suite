@@ -146,10 +146,10 @@ export function TaskTableRow({ task, isAdmin, memberOptions, onUpdate, onDelete 
         )}
       </TableCell>
 
-      <TableCell className="w-[150px] px-1">
+      <TableCell className="min-w-[148px] px-1">
         <Select value={status.value} onValueChange={(v) => onUpdate(task.id, { status: v })}>
           <SelectTrigger
-            className={cn("h-7 w-auto gap-1.5 rounded-full border-0 px-3 text-xs font-medium shadow-none", status.pill)}
+            className={cn("h-7 w-[132px] shrink-0 justify-start gap-1.5 rounded-full border-0 px-3 text-xs font-medium shadow-none [&>span]:line-clamp-none [&>svg]:ml-auto", status.pill)}
             aria-label="Status"
           >
             <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", status.dot)} />

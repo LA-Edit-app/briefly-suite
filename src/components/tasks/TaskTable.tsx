@@ -181,12 +181,6 @@ export function TaskTable() {
             )}
           </Tabs>
         )}
-
-        {!isLoading && !error && (
-          <p className="mt-3 text-xs text-muted-foreground">
-            {openCount(tasks)} open · {tasks.length} total
-          </p>
-        )}
       </CardContent>
     </Card>
   );

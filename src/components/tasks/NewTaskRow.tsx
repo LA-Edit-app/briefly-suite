@@ -18,15 +18,16 @@ export function NewTaskRow({ askAssignee, memberOptions, saving, onCreate, onCan
   const [title, setTitle] = useState("");
   const [assignee, setAssignee] = useState("");
 
-  const canSave = !!title.trim() && (!askAssignee || !!assignee) && !saving;
+  const canSave = !!title.trim() && (!askAssignee || !!assignee);
 
+  // Clear the field straight away so the next task can be typed while this one saves;
+  // put the text back if saving fails.
   const save = async () => {
     if (!canSave) return;
-    const ok = await onCreate({ title: title.trim(), assigned_to: askAssignee ? assignee : null });
-    if (ok) {
-      setTitle("");
-      setAssignee("");
-    }
+    const submitted = title.trim();
+    setTitle("");
+    const ok = await onCreate({ title: submitted, assigned_to: askAssignee ? assignee : null });
+    if (!ok) setTitle((current) => current || submitted);
   };
 
   return (

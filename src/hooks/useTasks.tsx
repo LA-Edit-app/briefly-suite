@@ -68,8 +68,8 @@ export const useCreateTask = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       
-      // Trigger notification if task is assigned to someone
-      if (data.assigned_to) {
+      // Trigger notification if task is assigned to someone else
+      if (data.assigned_to && data.assigned_to !== data.created_by) {
         const assigneeName = data.assignee?.first_name && data.assignee?.last_name 
           ? `${data.assignee.first_name} ${data.assignee.last_name}`
           : data.assignee?.email || 'Team member';
