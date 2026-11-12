@@ -30,6 +30,8 @@ interface TaskTableRowProps {
   task: TaskRow;
   isAdmin: boolean;
   memberOptions: MemberOption[];
+  // Off on the Team tab, where "Unassigned" would move the task off the tab.
+  allowUnassigned?: boolean;
   onUpdate: (id: string, updates: TaskUpdate) => void;
   onDelete: (task: TaskRow) => void;
 }
@@ -107,7 +109,7 @@ function DueDateCell({ value, overdue, onSave }: { value: string | null; overdue
   );
 }
 
-export function TaskTableRow({ task, isAdmin, memberOptions, onUpdate, onDelete }: TaskTableRowProps) {
+export function TaskTableRow({ task, isAdmin, memberOptions, allowUnassigned = true, onUpdate, onDelete }: TaskTableRowProps) {
   const done = isDone(task);
   const status = statusOption(task.status);
   const priority = priorityOption(task.priority);
@@ -158,7 +160,7 @@ export function TaskTableRow({ task, isAdmin, memberOptions, onUpdate, onDelete 
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={UNASSIGNED}>Unassigned</SelectItem>
+              {allowUnassigned && <SelectItem value={UNASSIGNED}>Unassigned</SelectItem>}
               {memberOptions.map((m) => (
                 <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
               ))}

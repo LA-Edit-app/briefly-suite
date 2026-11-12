@@ -96,7 +96,9 @@ export const useUpdateTask = () => {
   const createNotification = useCreateNotification();
 
   return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: TaskUpdate }) => {
+    // `optimistic` fills fields the update doesn't carry (e.g. the joined
+    // assignee record) so the row looks right before the server answers.
+    mutationFn: async ({ id, updates }: { id: string; updates: TaskUpdate; optimistic?: Partial<TaskWithRelations> }) => {
       // Get the current task data to compare changes
       const { data: currentTask } = await supabase
         .from("tasks")
@@ -132,11 +134,11 @@ export const useUpdateTask = () => {
       return { data, currentTask, updates, userId: session?.user.id };
     },
     // Show the change straight away; roll back if the save fails.
-    onMutate: async ({ id, updates }) => {
+    onMutate: async ({ id, updates, optimistic }) => {
       await queryClient.cancelQueries({ queryKey: ["tasks"] });
       const previous = queryClient.getQueryData<TaskWithRelations[]>(["tasks"]);
       queryClient.setQueryData<TaskWithRelations[]>(["tasks"], (old) =>
-        old?.map((t) => (t.id === id ? { ...t, ...updates } as TaskWithRelations : t))
+        old?.map((t) => (t.id === id ? { ...t, ...updates, ...optimistic } as TaskWithRelations : t))
       );
       return { previous };
     },
@@ -199,6 +201,24 @@ export const useDeleteTask = () => {
       if (error) throw error;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+};
+
+// Puts a deleted task back exactly as it was (same id and fields). Inserts
+// directly rather than through useCreateTask so the assignee isn't notified
+// a second time.
+export const useRestoreTask = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (task: TaskWithRelations) => {
+      const { assignee, updated_at, ...row } = task;
+      const { error } = await supabase.from("tasks").insert(row);
+      if (error) throw error;
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
     },
   });
