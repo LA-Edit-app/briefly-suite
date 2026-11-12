@@ -644,6 +644,7 @@ export type Database = {
           related_campaign_id: string | null
           related_creator_id: string | null
           sort_order: number
+          status: string
           title: string
           updated_at: string | null
         }
@@ -660,6 +661,7 @@ export type Database = {
           related_campaign_id?: string | null
           related_creator_id?: string | null
           sort_order?: number
+          status?: string
           title: string
           updated_at?: string | null
         }
@@ -676,6 +678,7 @@ export type Database = {
           related_campaign_id?: string | null
           related_creator_id?: string | null
           sort_order?: number
+          status?: string
           title?: string
           updated_at?: string | null
         }
