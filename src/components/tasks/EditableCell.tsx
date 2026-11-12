@@ -25,6 +25,8 @@ export function EditableCell({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const inputRef = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
+  // Guards against a blur after Enter/Escape saving (or re-saving) the draft.
+  const finished = useRef(false);
 
   useEffect(() => {
     if (!editing) setDraft(value);
@@ -34,7 +36,14 @@ export function EditableCell({
     if (editing) inputRef.current?.select();
   }, [editing]);
 
+  const start = () => {
+    finished.current = false;
+    setEditing(true);
+  };
+
   const commit = () => {
+    if (finished.current) return;
+    finished.current = true;
     setEditing(false);
     const next = draft.trim();
     if (required && !next) return setDraft(value);
@@ -42,6 +51,7 @@ export function EditableCell({
   };
 
   const cancel = () => {
+    finished.current = true;
     setDraft(value);
     setEditing(false);
   };
@@ -54,7 +64,7 @@ export function EditableCell({
       onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setDraft(e.target.value),
       onBlur: commit,
       onKeyDown: (e: React.KeyboardEvent) => {
-        if (e.key === "Enter" && !e.shiftKey) {
+        if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
           e.preventDefault();
           commit();
         }
@@ -69,8 +79,8 @@ export function EditableCell({
   return (
     <button
       type="button"
-      onClick={() => setEditing(true)}
-      aria-label={ariaLabel}
+      onClick={start}
+      aria-label={`${ariaLabel}: ${value || "empty"}`}
       className={cn(
         "block w-full min-h-[28px] rounded-md px-2 py-1 text-left text-sm hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-ring",
         !value && "text-muted-foreground",

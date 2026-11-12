@@ -128,13 +128,31 @@ export const useUpdateTask = () => {
         .single();
 
       if (error) throw error;
-      return { data, currentTask, updates };
+      const { data: { session } } = await supabase.auth.getSession();
+      return { data, currentTask, updates, userId: session?.user.id };
     },
-    onSuccess: ({ data, currentTask, updates }) => {
+    // Show the change straight away; roll back if the save fails.
+    onMutate: async ({ id, updates }) => {
+      await queryClient.cancelQueries({ queryKey: ["tasks"] });
+      const previous = queryClient.getQueryData<TaskWithRelations[]>(["tasks"]);
+      queryClient.setQueryData<TaskWithRelations[]>(["tasks"], (old) =>
+        old?.map((t) => (t.id === id ? { ...t, ...updates } as TaskWithRelations : t))
+      );
+      return { previous };
+    },
+    onError: (_error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(["tasks"], context.previous);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      
-      // Check if task was newly assigned or reassigned
-      if (updates.assigned_to && updates.assigned_to !== currentTask?.assigned_to) {
+    },
+    onSuccess: ({ data, currentTask, updates, userId }) => {
+      // Check if task was newly assigned or reassigned (to someone else)
+      if (
+        updates.assigned_to &&
+        updates.assigned_to !== currentTask?.assigned_to &&
+        updates.assigned_to !== userId
+      ) {
         createNotification.mutate({
           type: 'task_assignment',
           title: 'Task Assigned to You',
@@ -179,41 +197,6 @@ export const useDeleteTask = () => {
       const { error } = await supabase.from("tasks").delete().eq("id", id);
 
       if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-    },
-  });
-};
-
-export const useSwapTaskOrder = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      sourceId,
-      sourceOrder,
-      targetId,
-      targetOrder,
-    }: {
-      sourceId: string;
-      sourceOrder: number;
-      targetId: string;
-      targetOrder: number;
-    }) => {
-      const { error: sourceError } = await supabase
-        .from("tasks")
-        .update({ sort_order: targetOrder })
-        .eq("id", sourceId);
-
-      if (sourceError) throw sourceError;
-
-      const { error: targetError } = await supabase
-        .from("tasks")
-        .update({ sort_order: sourceOrder })
-        .eq("id", targetId);
-
-      if (targetError) throw targetError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });

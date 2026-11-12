@@ -43,7 +43,7 @@ export function NewTaskRow({ askAssignee, memberOptions, saving, onCreate, onCan
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") void save();
+            if (e.key === "Enter" && !e.nativeEvent.isComposing) void save();
             if (e.key === "Escape") onCancel();
           }}
           placeholder={askAssignee ? "Task name — pick who it's for, then press Enter" : "Task name — press Enter to add"}
@@ -54,6 +54,9 @@ export function NewTaskRow({ askAssignee, memberOptions, saving, onCreate, onCan
       {askAssignee && (
         <>
           <TableCell className="px-1">
+            {memberOptions.length === 0 ? (
+              <span className="px-2 text-sm text-muted-foreground">No other members to assign to</span>
+            ) : (
             <Select value={assignee} onValueChange={setAssignee}>
               <SelectTrigger className="h-8 text-sm" aria-label="Assign new task to">
                 <SelectValue placeholder="Assign to…" />
@@ -64,6 +67,7 @@ export function NewTaskRow({ askAssignee, memberOptions, saving, onCreate, onCan
                 ))}
               </SelectContent>
             </Select>
+            )}
           </TableCell>
           <TableCell colSpan={3} className="px-1">
             <Button size="sm" className="h-8" onClick={() => void save()} disabled={!canSave}>

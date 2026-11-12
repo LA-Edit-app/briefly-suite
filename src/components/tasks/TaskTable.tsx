@@ -79,7 +79,8 @@ export function TaskTable() {
   const startAdding = () => setAddingIn(tab);
 
   const renderTable = (list: TaskRow[], which: TabValue, emptyMessage: string) => (
-    <div className="overflow-x-auto rounded-lg border border-border">
+    <div className="rounded-lg border border-border">
+      <div className="max-h-[480px] overflow-auto">
       <Table className="min-w-[960px]">
         <TableHeader>
           <TableRow className="hover:bg-transparent">
@@ -119,6 +120,7 @@ export function TaskTable() {
           )}
         </TableBody>
       </Table>
+      </div>
       {addingIn !== which && (
         <button
           type="button"

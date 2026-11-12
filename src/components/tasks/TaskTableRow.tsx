@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -48,19 +48,44 @@ export function PersonChip({ name }: { name: string }) {
   );
 }
 
+// Saves once, when the date is confirmed (Enter or leaving the field) — not on every
+// keystroke, which would save half-typed years like 0202.
 function DueDateCell({ value, overdue, onSave }: { value: string | null; overdue: boolean; onSave: (v: string | null) => void }) {
   const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value ?? "");
+  const finished = useRef(false);
+
+  const start = () => {
+    setDraft(value ?? "");
+    finished.current = false;
+    setEditing(true);
+  };
+
+  const commit = () => {
+    if (finished.current) return;
+    finished.current = true;
+    setEditing(false);
+    if (draft !== (value ?? "")) onSave(draft || null);
+  };
+
+  const cancel = () => {
+    finished.current = true;
+    setEditing(false);
+  };
 
   if (editing) {
     return (
       <input
         type="date"
         autoFocus
-        defaultValue={value ?? ""}
+        value={draft}
         aria-label="Due date"
-        onChange={(e) => onSave(e.target.value || null)}
-        onBlur={() => setEditing(false)}
-        onKeyDown={(e) => (e.key === "Enter" || e.key === "Escape") && setEditing(false)}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit();
+          if (e.key === "Escape") cancel();
+        }}
         className="w-full rounded-md border border-input bg-background px-2 py-1 text-sm outline-none focus:ring-2 focus:ring-ring"
       />
     );
@@ -69,8 +94,8 @@ function DueDateCell({ value, overdue, onSave }: { value: string | null; overdue
   return (
     <button
       type="button"
-      onClick={() => setEditing(true)}
-      aria-label="Due date"
+      onClick={start}
+      aria-label={`Due date: ${value ? formatDueDate(value) : "none"}`}
       className={cn(
         "block w-full min-h-[28px] whitespace-nowrap rounded-md px-2 py-1 text-left text-sm hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-ring",
         !value && "text-muted-foreground",
@@ -127,7 +152,7 @@ export function TaskTableRow({ task, isAdmin, memberOptions, onUpdate, onDelete 
             value={task.assigned_to ?? UNASSIGNED}
             onValueChange={(v) => onUpdate(task.id, { assigned_to: v === UNASSIGNED ? null : v })}
           >
-            <SelectTrigger className="h-8 border-transparent bg-transparent px-2 shadow-none hover:bg-muted/60" aria-label="Assignee">
+            <SelectTrigger className="h-8 border-transparent bg-transparent px-2 shadow-none hover:bg-muted/60" aria-label={`Assignee: ${assigneeName || "Unassigned"}`}>
               <SelectValue>
                 <PersonChip name={assigneeName} />
               </SelectValue>
@@ -150,7 +175,7 @@ export function TaskTableRow({ task, isAdmin, memberOptions, onUpdate, onDelete 
         <Select value={status.value} onValueChange={(v) => onUpdate(task.id, { status: v })}>
           <SelectTrigger
             className={cn("h-7 w-[132px] shrink-0 justify-start gap-1.5 rounded-full border-0 px-3 text-xs font-medium shadow-none [&>span]:line-clamp-none [&>svg]:ml-auto", status.pill)}
-            aria-label="Status"
+            aria-label={`Status: ${status.label}`}
           >
             <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", status.dot)} />
             <SelectValue />
@@ -167,7 +192,7 @@ export function TaskTableRow({ task, isAdmin, memberOptions, onUpdate, onDelete 
         <Select value={priority.value} onValueChange={(v) => onUpdate(task.id, { priority: v })}>
           <SelectTrigger
             className={cn("h-8 border-transparent bg-transparent px-2 text-sm shadow-none hover:bg-muted/60", priority.className)}
-            aria-label="Priority"
+            aria-label={`Priority: ${priority.label}`}
           >
             <SelectValue />
           </SelectTrigger>
