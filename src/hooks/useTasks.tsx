@@ -149,8 +149,9 @@ export const useUpdateTask = () => {
         });
       }
       
-      // Check if task was completed
-      if (updates.completed && !currentTask?.completed) {
+      // Check if task was completed (status "done", or the legacy completed flag)
+      const nowDone = updates.status === 'done' || updates.completed === true;
+      if (nowDone && currentTask?.status !== 'done') {
         // Notify team that task was completed
         createNotification.mutate({
           type: 'task_assignment',
