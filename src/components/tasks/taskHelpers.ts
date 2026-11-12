@@ -36,9 +36,13 @@ export const isDone = (task: Pick<TaskRow, "status">) => task.status === "done";
 export const isMyTask = (task: TaskRow, userId: string | undefined) =>
   !!userId && (task.assigned_to === userId || (!task.assigned_to && task.created_by === userId));
 
-// Team tasks (issue #17): assigned to someone other than the person who created them.
-export const isTeamTask = (task: TaskRow) =>
-  !!task.assigned_to && task.assigned_to !== task.created_by;
+// Team tasks (issue #17): assigned to someone other than the person who created
+// them. Also unassigned tasks created by someone else, so admins can see and
+// assign them (#40).
+export const isTeamTask = (task: TaskRow, userId: string | undefined) =>
+  task.assigned_to
+    ? task.assigned_to !== task.created_by
+    : task.created_by !== userId;
 
 // Soonest due date first; tasks without a date last; then oldest first.
 export const compareTasks = (a: TaskRow, b: TaskRow) => {

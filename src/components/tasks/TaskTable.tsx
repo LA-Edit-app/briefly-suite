@@ -8,12 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Database } from "@/integrations/supabase/types";
-import { useCreateTask, useDeleteTask, useTasks, useUpdateTask } from "@/hooks/useTasks";
+import { useCreateTask, useDeleteTask, useRestoreTask, useTasks, useUpdateTask } from "@/hooks/useTasks";
 import { useAgencyMembers, useIsAgencyAdmin } from "@/hooks/useAgencyMembers";
 import { useAuth } from "@/hooks/useAuth";
 import { NewTaskRow } from "./NewTaskRow";
 import { TaskTableRow, type MemberOption } from "./TaskTableRow";
-import { compareTasks, isDone, isMyTask, isTeamTask, type TaskRow } from "./taskHelpers";
+import { compareTasks, isDone, isMyTask, isTeamTask, personName, type TaskRow } from "./taskHelpers";
 
 type TaskUpdate = Database["public"]["Tables"]["tasks"]["Update"];
 type TabValue = "my" | "team";
@@ -26,6 +26,7 @@ export function TaskTable() {
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
+  const restoreTask = useRestoreTask();
   const { data: isAdmin = false } = useIsAgencyAdmin();
   const { data: members } = useAgencyMembers();
   const { user } = useAuth();
@@ -43,19 +44,49 @@ export function TaskTable() {
   const teamAssigneeOptions = memberOptions.filter((m) => m.id !== user?.id);
 
   const myTasks = tasks.filter((t) => isMyTask(t, user?.id)).sort(compareTasks);
-  const teamTasks = tasks.filter(isTeamTask).sort(compareTasks);
+  const teamTasks = tasks.filter((t) => isTeamTask(t, user?.id)).sort(compareTasks);
   const openCount = (list: TaskRow[]) => list.filter((t) => !isDone(t)).length;
 
-  const handleUpdate = (id: string, updates: TaskUpdate) => {
+  const memberProfile = (id: string) => {
+    const p = members?.find((m) => m.user_id === id)?.profiles;
+    return p ? { id, first_name: p.first_name, last_name: p.last_name, email: p.email } : null;
+  };
+
+  const handleUpdate = (task: TaskRow, updates: TaskUpdate, which: TabValue) => {
+    const reassigned = "assigned_to" in updates;
+    const assignee = reassigned && updates.assigned_to ? memberProfile(updates.assigned_to) : null;
     updateTask.mutate(
-      { id, updates },
-      { onError: (e) => toast.error(e.message || "Failed to update task") }
+      { id: task.id, updates, optimistic: reassigned ? { assignee } : undefined },
+      {
+        onError: (e) => toast.error(e.message || "Failed to update task"),
+        onSuccess: () => {
+          if (!reassigned) return;
+          // Tell them where the task went if it no longer belongs on this tab.
+          const updated = { ...task, ...updates };
+          const name = personName(assignee);
+          if (which === "team" && !isTeamTask(updated, user?.id)) {
+            toast.info(name ? `Moved to ${name}'s tasks` : "Moved to My tasks");
+          } else if (which === "my" && !isMyTask(updated, user?.id)) {
+            toast.info(isAdmin ? `Assigned to ${name}. It's now in Team tasks.` : `Assigned to ${name}`);
+          }
+        },
+      }
     );
   };
 
   const handleDelete = (task: TaskRow) => {
     deleteTask.mutate(task.id, {
-      onSuccess: () => toast.success(`Deleted "${task.title}"`),
+      onSuccess: () =>
+        toast.success(`Deleted "${task.title}"`, {
+          action: {
+            label: "Undo",
+            onClick: () =>
+              restoreTask.mutate(task, {
+                onSuccess: () => toast.success(`Restored "${task.title}"`),
+                onError: (e) => toast.error(e.message || "Failed to restore task"),
+              }),
+          },
+        }),
       onError: (e) => toast.error(e.message || "Failed to delete task"),
     });
   };
@@ -97,8 +128,11 @@ export function TaskTable() {
               key={task.id}
               task={task}
               isAdmin={isAdmin}
-              memberOptions={memberOptions}
-              onUpdate={handleUpdate}
+              // On the Team tab, assigning to the creator or to nobody would move
+              // the task off the tab, so those options are left out.
+              memberOptions={which === "team" ? memberOptions.filter((m) => m.id !== task.created_by) : memberOptions}
+              allowUnassigned={which !== "team"}
+              onUpdate={(_id, updates) => handleUpdate(task, updates, which)}
               onDelete={handleDelete}
             />
           ))}
