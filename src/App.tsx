@@ -1,15 +1,16 @@
-import React, { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
-import { useProfile } from "@/hooks/useDatabase";
 import { BrandThemeProvider } from "@/context/BrandThemeContext";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { initialAuthLinkType } from "@/lib/authLink";
 import ComingSoon from "./pages/ComingSoon";
+import { AgencyRoute } from "@/components/routing/AgencyRoute";
+import { RouteFallback } from "@/components/routing/RouteFallback";
 
 const Index = lazy(() => import("./pages/Index"));
 const Campaigns = lazy(() => import("./pages/Campaigns"));
@@ -24,20 +25,6 @@ const XeroCallback = lazy(() => import("./pages/XeroCallback"));
 const SetPassword = lazy(() => import("./pages/SetPassword"));
 
 const queryClient = new QueryClient();
-
-const RouteFallback = () => <div className="min-h-screen bg-background" />;
-
-// Redirects platform admins to /platform-admin for all agency-scoped routes.
-// Platform admins are Briefly staff — they use the Platform Admin panel, not
-// the agency dashboard (even when they happen to have an agency record).
-const AgencyRoute = ({ element }: { element: React.ReactElement }) => {
-  const { data: profile, isLoading } = useProfile();
-  if (isLoading) return <RouteFallback />;
-  if (profile?.is_platform_admin) {
-    return <Navigate to="/platform-admin" replace />;
-  }
-  return element;
-};
 
 const AppRoutes = () => {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
