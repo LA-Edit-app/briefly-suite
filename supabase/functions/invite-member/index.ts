@@ -31,7 +31,8 @@ Deno.serve(async (req) => {
 
     const { agencyId, email, role = "member" } = await req.json();
     if (!agencyId || !email) throw new Error("Missing agencyId or email");
-    if (role !== "member" && role !== "admin") throw new Error("Invalid role");
+    // Owner is never invited; ownership is set when the agency is created.
+    if (!["admin", "talent_manager", "creator", "member"].includes(role)) throw new Error("Invalid role");
 
     // is_agency_admin() only covers the caller's own agency, so the target
     // agency must be that same agency (#25).
