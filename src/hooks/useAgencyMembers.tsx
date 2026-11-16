@@ -291,7 +291,7 @@ export const useInviteMember = () => {
     }: {
       agencyId: string;
       email: string;
-      role?: 'admin' | 'member';
+      role?: 'admin' | 'talent_manager' | 'creator' | 'member';
     }) => {
       const { data, error } = await supabase.functions.invoke('invite-member', {
         body: { agencyId, email, role },
