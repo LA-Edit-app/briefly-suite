@@ -28,6 +28,7 @@ import { useDeleteCustomEvent, type CalendarEvent } from "@/hooks/useCustomEvent
 import { AddCustomEventDialog } from "./AddCustomEventDialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { errorMessage } from "@/lib/errors";
 
 // ─── Shared helpers ────────────────────────────────────────────────────────────
 
@@ -416,8 +417,8 @@ function CalendarGrid({
                                         try {
                                           await deleteCustomEvent.mutateAsync(ev.id);
                                           toast.success("Event deleted successfully");
-                                        } catch (error: any) {
-                                          toast.error(error.message || "Failed to delete event");
+                                        } catch (error) {
+                                          toast.error(errorMessage(error) || "Failed to delete event");
                                         }
                                       }}
                                     >
@@ -737,8 +738,8 @@ export function UpcomingEventsCalendar() {
                                 try {
                                   await deleteCustomEvent.mutateAsync(event.id);
                                   toast.success("Event deleted successfully");
-                                } catch (error: any) {
-                                  toast.error(error.message || "Failed to delete event");
+                                } catch (error) {
+                                  toast.error(errorMessage(error) || "Failed to delete event");
                                 }
                               }}
                             >

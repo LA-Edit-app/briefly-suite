@@ -44,7 +44,7 @@ function NotificationItem({ notification }: { notification: Notification }) {
     
     try {
       await markAsRead.mutateAsync(notification.id);
-    } catch (error: any) {
+    } catch (error) {
       toast.error("Failed to mark notification as read");
     }
   };
@@ -55,7 +55,7 @@ function NotificationItem({ notification }: { notification: Notification }) {
     try {
       await deleteNotification.mutateAsync(notification.id);
       toast.success("Notification deleted");
-    } catch (error: any) {
+    } catch (error) {
       toast.error("Failed to delete notification");
     }
   };
@@ -138,7 +138,7 @@ export function NotificationCenter() {
     try {
       await markAllAsRead.mutateAsync();
       toast.success("All notifications marked as read");
-    } catch (error: any) {
+    } catch (error) {
       toast.error("Failed to mark notifications as read");
     }
   };

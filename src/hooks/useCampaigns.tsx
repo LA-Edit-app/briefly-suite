@@ -151,35 +151,6 @@ export const useCampaign = (campaignId: string | undefined) => {
   });
 };
 
-// Get campaigns by brand
-export const useCampaignsByBrand = (brand: string | undefined) => {
-  return useQuery({
-    queryKey: ['campaigns', 'brand', brand],
-    queryFn: async () => {
-      if (!brand) throw new Error('Brand is required');
-
-      const { data, error } = await supabase
-        .from('campaigns')
-        .select(`
-          *,
-          creators (
-            id,
-            name,
-            handle,
-            avatar
-          ),
-          content_items (*)
-        `)
-        .ilike('brand', `%${brand}%`)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as CampaignWithRelations[];
-    },
-    enabled: !!brand,
-  });
-};
-
 // Get campaign statistics
 export const useCampaignStats = () => {
   const { data: agencyId } = useAgencyId();

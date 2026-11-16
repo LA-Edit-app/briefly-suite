@@ -220,7 +220,7 @@ const AgencySettings = () => {
   const handleRoleChange = (member: AgencyMemberWithProfile, newRole: "admin" | "talent_manager" | "creator" | "member") => {
     // Clear linked creator when switching away from creator role
     const linkedCreatorId = newRole === "creator"
-      ? (pendingLinkedCreator[member.user_id] || (member as any).linked_creator_id || null)
+      ? (pendingLinkedCreator[member.user_id] || member.linked_creator_id || null)
       : null;
 
     updateMemberRole.mutate(
@@ -403,7 +403,7 @@ const AgencySettings = () => {
                             </Select>
                             {member.role === "creator" && creators.length > 0 && (
                               <Select
-                                value={pendingLinkedCreator[member.user_id] ?? (member as any).linked_creator_id ?? ""}
+                                value={pendingLinkedCreator[member.user_id] ?? member.linked_creator_id ?? ""}
                                 onValueChange={(v) => handleLinkedCreatorChange(member, v)}
                               >
                                 <SelectTrigger className="h-8 w-40 text-xs">

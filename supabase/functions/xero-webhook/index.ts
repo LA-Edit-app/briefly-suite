@@ -7,6 +7,9 @@ import {
   toIsoDate,
 } from "../_shared/xeroStatus.ts";
 
+// Supabase Edge Runtime global: keeps the function alive for background work.
+declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
+
 type XeroWebhookEvent = {
   eventCategory: string;
   eventType: string;
@@ -131,7 +134,6 @@ Deno.serve(async (req) => {
     }
   };
 
-  // @ts-ignore — Deno Deploy / Edge Runtime global
   EdgeRuntime.waitUntil(process());
 
   return new Response(null, { status: 200 });

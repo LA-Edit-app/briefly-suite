@@ -40,6 +40,8 @@ import {
 import { usePublishedSchema, DEFAULT_COLUMNS } from "@/hooks/useColumnSchemas";
 import type { ColumnDefinition } from "@/hooks/useColumnSchemas";
 import { useCurrentUserRole, useLinkedCreatorId } from "@/hooks/useAgencyMembers";
+import type { Json } from "@/integrations/supabase/types";
+import { errorMessage } from "@/lib/errors";
 
 const statusOptions = [
   { value: "Pending", label: "Pending" },
@@ -195,9 +197,9 @@ const CampaignTracker = () => {
       if ((result?.synced ?? 0) > 0) {
         toast.success(`Xero auto-sync updated ${result?.synced} campaign${result?.synced === 1 ? "" : "s"}`);
       }
-    } catch (syncError: any) {
+    } catch (syncError) {
       if (mode === "manual") {
-        toast.error(syncError?.message || "Failed to sync campaigns from Xero");
+        toast.error(errorMessage(syncError) || "Failed to sync campaigns from Xero");
       }
     }
   };
@@ -332,8 +334,8 @@ const CampaignTracker = () => {
         updates,
       });
       toast.success("Campaign updated");
-    } catch (mutationError: any) {
-      toast.error(mutationError?.message || "Failed to update campaign");
+    } catch (mutationError) {
+      toast.error(errorMessage(mutationError) || "Failed to update campaign");
     }
   };
 
@@ -366,8 +368,8 @@ const CampaignTracker = () => {
         },
       });
       setSelectedCampaign(updatedCampaign);
-    } catch (mutationError: any) {
-      toast.error(mutationError?.message || "Failed to update campaign");
+    } catch (mutationError) {
+      toast.error(errorMessage(mutationError) || "Failed to update campaign");
     }
   };
 
@@ -388,8 +390,8 @@ const CampaignTracker = () => {
         campaign_status: "pending",
       });
       toast.success("New row added");
-    } catch (mutationError: any) {
-      toast.error(mutationError?.message || "Failed to add campaign");
+    } catch (mutationError) {
+      toast.error(errorMessage(mutationError) || "Failed to add campaign");
     }
   };
 
@@ -397,8 +399,8 @@ const CampaignTracker = () => {
     try {
       await deleteCampaignMutation.mutateAsync(String(id));
       toast.success("Row deleted");
-    } catch (mutationError: any) {
-      toast.error(mutationError?.message || "Failed to delete campaign");
+    } catch (mutationError) {
+      toast.error(errorMessage(mutationError) || "Failed to delete campaign");
     }
   };
 
@@ -919,7 +921,7 @@ const CampaignTracker = () => {
                                   value={String(customVal ?? "")}
                                   onChange={(v) => {
                                     const cf = { ...((campaign as unknown as Record<string, Record<string, unknown>>).custom_fields ?? {}), [col.key]: v };
-                                    void updateCampaignMutation.mutateAsync({ id: String(campaign.id), updates: { custom_fields: cf } });
+                                    void updateCampaignMutation.mutateAsync({ id: String(campaign.id), updates: { custom_fields: cf as Json } });
                                   }}
                                   options={col.options ?? []}
                                   getStyle={() => "bg-muted text-muted-foreground"}
@@ -936,7 +938,7 @@ const CampaignTracker = () => {
                                   value={String(customVal ?? "")}
                                   onChange={(v) => {
                                     const cf = { ...((campaign as unknown as Record<string, Record<string, unknown>>).custom_fields ?? {}), [col.key]: v };
-                                    void updateCampaignMutation.mutateAsync({ id: String(campaign.id), updates: { custom_fields: cf } });
+                                    void updateCampaignMutation.mutateAsync({ id: String(campaign.id), updates: { custom_fields: cf as Json } });
                                   }}
                                   displayClassName="text-muted-foreground"
                                   readOnly={isCreatorRole}
@@ -950,7 +952,7 @@ const CampaignTracker = () => {
                                 value={col.type === "number" || col.type === "currency" ? (customVal as number | null | undefined) ?? null : String(customVal ?? "")}
                                 onChange={(v) => {
                                   const cf = { ...((campaign as unknown as Record<string, Record<string, unknown>>).custom_fields ?? {}), [col.key]: v };
-                                  void updateCampaignMutation.mutateAsync({ id: String(campaign.id), updates: { custom_fields: cf } });
+                                  void updateCampaignMutation.mutateAsync({ id: String(campaign.id), updates: { custom_fields: cf as Json } });
                                 }}
                                 type={col.type === "currency" ? "number" : col.type === "number" ? "number" : "text"}
                                 formatAsCurrency={col.type === "currency"}

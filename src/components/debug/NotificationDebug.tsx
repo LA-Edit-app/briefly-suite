@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCreateNotification, useNotifications, useUnreadNotificationCount } from "@/hooks/useNotifications";
 import { useAgencyId, useProfile } from "@/hooks/useDatabase";
 import { toast } from "sonner";
+import { errorMessage } from "@/lib/errors";
 
 export function NotificationDebug() {
   const { data: profile } = useProfile();
@@ -32,9 +33,9 @@ export function NotificationDebug() {
         }
       });
       toast.success("Test notification created!");
-    } catch (error: any) {
+    } catch (error) {
       console.error("Failed to create test notification:", error);
-      toast.error(`Failed to create notification: ${error.message}`);
+      toast.error(`Failed to create notification: ${errorMessage(error)}`);
     }
     setIsCreating(false);
   };

@@ -24,6 +24,7 @@ import { SYSTEM_COLUMN_KEYS } from "@/hooks/useColumnSchemas";
 import type { Creator } from "@/data/campaignTrackerData";
 import { DatePickerCell } from "@/components/campaign-tracker/DatePickerCell";
 import { toast } from "sonner";
+import type { Json } from "@/integrations/supabase/types";
 
 // ── Static select options for built-in system columns ────────────────────────
 const SYSTEM_SELECT_OPTIONS: Record<string, { value: string; label: string }[]> = {
@@ -132,7 +133,7 @@ export const CreateCampaignDialog = ({
     }
 
     // Collect custom (non-system) column values
-    const customFields: Record<string, unknown> = {};
+    const customFields: Record<string, Json> = {};
     for (const col of activeColumns) {
       if (!SYSTEM_COLUMN_KEYS.has(col.key) && values[col.key] !== undefined && values[col.key] !== "") {
         customFields[col.key] =
