@@ -31,6 +31,14 @@ Deno.serve(async (req) => {
 
     const { agencyId, email, role = "member" } = await req.json();
     if (!agencyId || !email) throw new Error("Missing agencyId or email");
+    if (role !== "member" && role !== "admin") throw new Error("Invalid role");
+
+    // is_agency_admin() only covers the caller's own agency, so the target
+    // agency must be that same agency (#25).
+    const { data: callerAgencyId, error: agencyError } = await userClient.rpc("current_agency_id");
+    if (agencyError || !callerAgencyId || callerAgencyId !== agencyId) {
+      throw new Error("You can only invite members to your own agency");
+    }
 
     const normalizedEmail = email.toLowerCase().trim();
 
