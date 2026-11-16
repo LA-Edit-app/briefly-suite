@@ -20,6 +20,10 @@ const Settings = () => {
   const { user } = useAuth();
   const { data: profile, isLoading } = useProfile();
   const updateProfile = useUpdateProfile();
+  // Wait for the profile so neither audience briefly sees the other's section.
+  const isPlatformAdmin = profile?.is_platform_admin === true;
+  const showNotificationPrefs = !!profile && !isPlatformAdmin;
+  const showNotificationDebug = isPlatformAdmin;
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -147,69 +151,71 @@ const Settings = () => {
           </div>
         </div>
 
-        {/* Notifications Section */}
-        <div className="bg-card rounded-xl border border-border p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-6">Notifications</h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-foreground">Email Notifications</p>
-                <p className="text-sm text-muted-foreground">Receive email updates about campaign activity</p>
+        {/* Notifications Section: agency users only */}
+        {showNotificationPrefs && (
+          <div className="bg-card rounded-xl border border-border p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-6">Notifications</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-foreground">Email Notifications</p>
+                  <p className="text-sm text-muted-foreground">Receive email updates about campaign activity</p>
+                </div>
+                <Switch 
+                  checked={emailNotifications} 
+                  onCheckedChange={setEmailNotifications}
+                  disabled={updateProfile.isPending}
+                />
               </div>
-              <Switch 
-                checked={emailNotifications} 
-                onCheckedChange={setEmailNotifications}
-                disabled={updateProfile.isPending}
-              />
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-foreground">Campaign Alerts</p>
+                  <p className="text-sm text-muted-foreground">Get notified when campaigns start or end</p>
+                </div>
+                <Switch 
+                  checked={campaignAlerts} 
+                  onCheckedChange={setCampaignAlerts}
+                  disabled={updateProfile.isPending}
+                />
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-foreground">Weekly Reports</p>
+                  <p className="text-sm text-muted-foreground">Receive weekly performance summaries</p>
+                </div>
+                <Switch 
+                  checked={weeklyReports} 
+                  onCheckedChange={setWeeklyReports}
+                  disabled={updateProfile.isPending}
+                />
+              </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-foreground">Creator Updates</p>
+                  <p className="text-sm text-muted-foreground">Notifications about creator activity</p>
+                </div>
+                <Switch 
+                  checked={creatorUpdates} 
+                  onCheckedChange={setCreatorUpdates}
+                  disabled={updateProfile.isPending}
+                />
+              </div>
             </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-foreground">Campaign Alerts</p>
-                <p className="text-sm text-muted-foreground">Get notified when campaigns start or end</p>
-              </div>
-              <Switch 
-                checked={campaignAlerts} 
-                onCheckedChange={setCampaignAlerts}
-                disabled={updateProfile.isPending}
-              />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-foreground">Weekly Reports</p>
-                <p className="text-sm text-muted-foreground">Receive weekly performance summaries</p>
-              </div>
-              <Switch 
-                checked={weeklyReports} 
-                onCheckedChange={setWeeklyReports}
-                disabled={updateProfile.isPending}
-              />
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-foreground">Creator Updates</p>
-                <p className="text-sm text-muted-foreground">Notifications about creator activity</p>
-              </div>
-              <Switch 
-                checked={creatorUpdates} 
-                onCheckedChange={setCreatorUpdates}
-                disabled={updateProfile.isPending}
-              />
+            
+            <div className="mt-6">
+              <Button
+                onClick={handleSaveProfile}
+                disabled={updateProfile.isPending || isLoading}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                {updateProfile.isPending ? "Saving..." : "Save Notification Preferences"}
+              </Button>
             </div>
           </div>
-          
-          <div className="mt-6">
-            <Button
-              onClick={handleSaveProfile}
-              disabled={updateProfile.isPending || isLoading}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              {updateProfile.isPending ? "Saving..." : "Save Notification Preferences"}
-            </Button>
-          </div>
-        </div>
+        )}
 
         {/* Security Section */}
         <div className="bg-card rounded-xl border border-border p-6">
@@ -243,11 +249,13 @@ const Settings = () => {
           </div>
         </div>
 
-        {/* Debug Section */}
-        <div className="bg-card rounded-xl border border-border p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-6">Notification Debug</h3>
-          <NotificationDebug />
-        </div>
+        {/* Debug Section: platform admins only */}
+        {showNotificationDebug && (
+          <div className="bg-card rounded-xl border border-border p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-6">Notification Debug</h3>
+            <NotificationDebug />
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
