@@ -10,6 +10,8 @@ import { useState } from "react";
 interface CreatorSelectorProps {
   creators: Creator[];
   onSelect: (creator: Creator) => void;
+  /** Shown when there are no creators at all (not just no search matches). */
+  emptyStateMessage?: string;
 }
 
 const getPlatformIcon = (platform: string) => {
@@ -29,7 +31,7 @@ const getPlatformIcon = (platform: string) => {
   }
 };
 
-export const CreatorSelector = ({ creators, onSelect }: CreatorSelectorProps) => {
+export const CreatorSelector = ({ creators, onSelect, emptyStateMessage = "No creators yet" }: CreatorSelectorProps) => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredCreators = creators.filter(
@@ -97,7 +99,7 @@ export const CreatorSelector = ({ creators, onSelect }: CreatorSelectorProps) =>
 
       {filteredCreators.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
-          No creators found matching "{searchQuery}"
+          {creators.length === 0 ? emptyStateMessage : `No creators found matching "${searchQuery}"`}
         </div>
       )}
     </div>

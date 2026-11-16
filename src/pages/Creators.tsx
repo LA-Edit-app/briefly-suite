@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { errorMessage } from "@/lib/errors";
 
 const platformIcons = {
   instagram: Instagram,
@@ -110,8 +111,8 @@ const Creators = () => {
       setNewCreatorPlatforms([]);
       setIsAddCreatorOpen(false);
       toast.success("Creator saved to database");
-    } catch (mutationError: any) {
-      toast.error(mutationError?.message || "Failed to save creator");
+    } catch (mutationError) {
+      toast.error(errorMessage(mutationError) || "Failed to save creator");
     }
   };
 
@@ -172,8 +173,8 @@ const Creators = () => {
       setEditingCreatorId(null);
       setEditCreatorPlatforms([]);
       toast.success("Creator updated");
-    } catch (mutationError: any) {
-      toast.error(mutationError?.message || "Failed to update creator");
+    } catch (mutationError) {
+      toast.error(errorMessage(mutationError) || "Failed to update creator");
     }
   };
 
@@ -184,8 +185,8 @@ const Creators = () => {
         updates: { is_active: !isActive },
       });
       toast.success(!isActive ? "Creator reactivated" : "Creator deactivated");
-    } catch (mutationError: any) {
-      toast.error(mutationError?.message || "Failed to update creator status");
+    } catch (mutationError) {
+      toast.error(errorMessage(mutationError) || "Failed to update creator status");
     }
   };
 
@@ -198,8 +199,8 @@ const Creators = () => {
     try {
       await deleteCreator.mutateAsync(creatorId);
       toast.success("Creator deleted");
-    } catch (mutationError: any) {
-      toast.error(mutationError?.message || "Failed to delete creator");
+    } catch (mutationError) {
+      toast.error(errorMessage(mutationError) || "Failed to delete creator");
     }
   };
 

@@ -10,6 +10,7 @@ import { PasswordRules } from "@/components/auth/PasswordRules";
 import { consumeAuthLinkError } from "@/lib/authLink";
 import { isPasswordValid, PASSWORD_RULES_MESSAGE } from "@/lib/password";
 import { z } from "zod";
+import { errorMessage } from "@/lib/errors";
 
 const emailSchema = z.string().email({ message: "Please enter a valid email address" });
 
@@ -112,9 +113,9 @@ export default function Auth() {
         });
         setMode("login");
       }
-    } catch (error: any) {
-      let message = error.message;
-      if (error.message.includes("User already registered")) {
+    } catch (error) {
+      let message = errorMessage(error);
+      if (message.includes("User already registered")) {
         message = "This email is already registered. Please log in instead.";
       }
       toast({

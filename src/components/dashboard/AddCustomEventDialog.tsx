@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner";
 import { useCreateCustomEvent, type CustomEventInsert } from "@/hooks/useCustomEvents";
 import { format } from "date-fns";
+import { errorMessage } from "@/lib/errors";
 
 // Predefined color options for events
 const EVENT_COLORS = [
@@ -96,8 +97,8 @@ export function AddCustomEventDialog({
       setAllDay(true);
       setColor(EVENT_COLORS[0].value);
       setOpen(false);
-    } catch (error: any) {
-      toast.error(error.message || "Failed to create custom event");
+    } catch (error) {
+      toast.error(errorMessage(error) || "Failed to create custom event");
     }
   };
 

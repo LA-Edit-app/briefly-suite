@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAgencyId, useProfile } from "./useDatabase";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Json } from "@/integrations/supabase/types";
 
 // Types for notifications
 export type Notification = Database['public']['Tables']['notifications']['Row'];
@@ -20,7 +20,7 @@ export interface CreateNotificationParams {
   type: NotificationType;
   title: string;
   message: string;
-  data?: any;
+  data?: Json;
   userIds?: string[]; // If provided, create notifications for specific users, otherwise for all agency members
 }
 

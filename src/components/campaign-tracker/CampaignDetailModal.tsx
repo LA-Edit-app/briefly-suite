@@ -50,6 +50,7 @@ import {
   buildAttachmentPath,
   getAttachmentUrl,
 } from "@/lib/campaignAttachments";
+import type { Json } from "@/integrations/supabase/types";
 
 // ── Static select options (mirrors CreateCampaignDialog) ──────────────────────
 const SYSTEM_SELECT_OPTIONS: Record<string, { value: string; label: string }[]> = {
@@ -131,7 +132,7 @@ function campaignToValues(campaign: CampaignData): Record<string, string> {
 }
 
 function valuesToCampaignUpdates(values: Record<string, string>, activeColumns: ColumnDefinition[]) {
-  const customFields: Record<string, unknown> = {};
+  const customFields: Record<string, Json> = {};
   for (const col of activeColumns) {
     if (!SYSTEM_COLUMN_KEYS.has(col.key) && values[col.key] !== undefined && values[col.key] !== "") {
       customFields[col.key] =
