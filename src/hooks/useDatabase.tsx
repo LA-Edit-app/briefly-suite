@@ -123,9 +123,12 @@ export const useUpdateProfile = () => {
 
       if (!user) throw new Error('Not authenticated');
 
+      // Plain update: the profile row is created at sign-up. An upsert would
+      // fire the new-profile trigger and create a stray agency (#42).
       const { data, error } = await supabase
         .from('profiles')
-        .upsert({ id: user.id, email: user.email, ...updates })
+        .update(updates)
+        .eq('id', user.id)
         .select()
         .single();
 
