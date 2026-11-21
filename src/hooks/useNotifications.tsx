@@ -1,12 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { db as supabase } from "@/lib/db";
 import { useAgencyId, useProfile } from "./useDatabase";
-import type { Database, Json } from "@/integrations/supabase/types";
+import type { Json } from "@/integrations/supabase/types";
+import type { Notification, NotificationInsert, NotificationUpdate } from "@/lib/db";
 
 // Types for notifications
-export type Notification = Database['public']['Tables']['notifications']['Row'];
-export type NotificationInsert = Database['public']['Tables']['notifications']['Insert'];
-export type NotificationUpdate = Database['public']['Tables']['notifications']['Update'];
+export type { Notification, NotificationInsert, NotificationUpdate };
 
 export type NotificationType = 
   | 'campaign_alert' 

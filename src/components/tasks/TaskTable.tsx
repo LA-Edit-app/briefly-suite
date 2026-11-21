@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { Database } from "@/integrations/supabase/types";
+import type { TaskUpdate } from "@/lib/db";
 import { useCreateTask, useDeleteTask, useRestoreTask, useTasks, useUpdateTask } from "@/hooks/useTasks";
 import { useAgencyMembers, useIsAgencyAdmin } from "@/hooks/useAgencyMembers";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,7 +15,6 @@ import { NewTaskRow } from "./NewTaskRow";
 import { TaskTableRow, type MemberOption } from "./TaskTableRow";
 import { compareTasks, isDone, isMyTask, isTeamTask, personName, type TaskRow } from "./taskHelpers";
 
-type TaskUpdate = Database["public"]["Tables"]["tasks"]["Update"];
 type TabValue = "my" | "team";
 
 const COLUMNS = ["", "Task name", "Due date", "Assignee", "Status", "Priority", "Description"];

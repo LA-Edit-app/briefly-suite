@@ -1,11 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
+import { db as supabase } from '@/lib/db';
+import type { ContentItem, ContentItemInsert, ContentItemUpdate } from '@/lib/db';
 import { useAgencyId } from './useDatabase';
-
-type ContentItem = Database['public']['Tables']['content_items']['Row'];
-type ContentItemInsert = Database['public']['Tables']['content_items']['Insert'];
-type ContentItemUpdate = Database['public']['Tables']['content_items']['Update'];
 
 interface ContentItemWithCampaign extends ContentItem {
   campaigns: {

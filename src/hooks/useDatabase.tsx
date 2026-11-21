@@ -1,11 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
-
-type Platform = Database['public']['Tables']['platforms']['Row'];
-type PlatformInsert = Database['public']['Tables']['platforms']['Insert'];
-type Profile = Database['public']['Tables']['profiles']['Row'];
-type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
+import { db as supabase } from '@/lib/db';
+import type { Platform, PlatformInsert, Profile, ProfileUpdate } from '@/lib/db';
 
 // Get all platforms
 export const usePlatforms = () => {

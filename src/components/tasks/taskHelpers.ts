@@ -1,9 +1,9 @@
-import type { Database } from "@/integrations/supabase/types";
+import type { Task } from "@/lib/db";
 
 export type TaskStatus = "not_started" | "in_progress" | "done";
 export type TaskPriority = "high" | "medium" | "low";
 
-export type TaskRow = Database["public"]["Tables"]["tasks"]["Row"] & {
+export type TaskRow = Task & {
   assignee: {
     id: string;
     first_name: string | null;

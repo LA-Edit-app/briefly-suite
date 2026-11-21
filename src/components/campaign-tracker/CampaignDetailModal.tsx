@@ -41,7 +41,7 @@ import { DatePickerCell } from "@/components/campaign-tracker/DatePickerCell";
 import { useUpdateCampaign } from "@/hooks/useCampaigns";
 import { useProfile } from "@/hooks/useDatabase";
 import { useAgencyId } from "@/hooks/useDatabase";
-import { supabase } from "@/integrations/supabase/client";
+import { db as supabase } from "@/lib/db";
 import {
   CAMPAIGN_ATTACHMENTS_BUCKET,
   MAX_ATTACHMENT_BYTES,
@@ -277,7 +277,7 @@ export const CampaignDetailModal = ({
     try {
       await updateCampaign.mutateAsync({
         id: String(campaign.id),
-        updates: { campaign_comments: updatedComments as unknown as import("@/integrations/supabase/types").Database["public"]["Tables"]["campaigns"]["Update"]["campaign_comments"] },
+        updates: { campaign_comments: updatedComments as unknown as Json },
       });
       setComments(updatedComments);
       setNewComment("");
@@ -334,7 +334,7 @@ export const CampaignDetailModal = ({
       await updateCampaign.mutateAsync({
         id: String(campaign.id),
         updates: {
-          campaign_attachments: updated as unknown as import("@/integrations/supabase/types").Database["public"]["Tables"]["campaigns"]["Update"]["campaign_attachments"],
+          campaign_attachments: updated as unknown as Json,
         },
       });
       setAttachments(updated);
@@ -357,7 +357,7 @@ export const CampaignDetailModal = ({
       await updateCampaign.mutateAsync({
         id: String(campaign.id),
         updates: {
-          campaign_attachments: updated as unknown as import("@/integrations/supabase/types").Database["public"]["Tables"]["campaigns"]["Update"]["campaign_attachments"],
+          campaign_attachments: updated as unknown as Json,
         },
       });
       setAttachments(updated);

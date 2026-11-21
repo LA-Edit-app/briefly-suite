@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { Database } from "@/integrations/supabase/types";
+import type { TaskUpdate } from "@/lib/db";
 import { EditableCell } from "./EditableCell";
 import {
   PRIORITY_OPTIONS,
@@ -18,8 +18,6 @@ import {
   statusOption,
   type TaskRow,
 } from "./taskHelpers";
-
-type TaskUpdate = Database["public"]["Tables"]["tasks"]["Update"];
 
 export interface MemberOption {
   id: string;

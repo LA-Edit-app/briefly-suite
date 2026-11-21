@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
+import { db as supabase } from "@/lib/db";
+import type { Task, TaskInsert, TaskUpdate } from "@/lib/db";
 import { useAgencyId } from "./useDatabase";
 import { useCreateNotification } from "./useNotifications";
 

@@ -1,11 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
+import { db as supabase } from '@/lib/db';
+import type { Creator, CreatorInsert, CreatorUpdate } from '@/lib/db';
 import { useAgencyId } from './useDatabase';
-
-type Creator = Database['public']['Tables']['creators']['Row'];
-type CreatorInsert = Database['public']['Tables']['creators']['Insert'];
-type CreatorUpdate = Database['public']['Tables']['creators']['Update'];
 
 interface CreatorWithPlatforms extends Creator {
   creator_platforms: {

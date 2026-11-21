@@ -1,10 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
+import { db as supabase } from '@/lib/db';
+import type { AgencyMemberRow, AgencyRow } from '@/lib/db';
 import { AGENCY_LOGO_BUCKET, buildLogoPath, logoPathFromUrl } from '@/lib/agencyLogo';
-
-type AgencyMemberRow = Database['public']['Tables']['agency_members']['Row'];
-type AgencyRow = Database['public']['Tables']['agencies']['Row'];
 
 export type AgencyMemberWithProfile = AgencyMemberRow & {
   profiles: {

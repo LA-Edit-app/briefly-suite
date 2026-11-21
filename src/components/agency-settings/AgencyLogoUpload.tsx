@@ -15,11 +15,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useRemoveAgencyLogo, useUploadAgencyLogo } from "@/hooks/useAgencyMembers";
-import type { Database } from "@/integrations/supabase/types";
+import type { AgencyRow } from "@/lib/db";
 import { ALLOWED_LOGO_TYPES, isValidLogoFile } from "@/lib/agencyLogo";
 import { BRIEFLY_LOGO } from "@/lib/brand";
-
-type AgencyRow = Database["public"]["Tables"]["agencies"]["Row"];
 
 interface AgencyLogoUploadProps {
   agency: AgencyRow;

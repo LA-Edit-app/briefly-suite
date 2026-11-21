@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { parse as dateFnsParse, format as dateFnsFormat, isValid } from 'date-fns';
-import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
+import { db as supabase } from '@/lib/db';
+import type { Campaign, CampaignInsert, CampaignUpdate, ContentItem } from '@/lib/db';
 import { useAgencyId } from './useDatabase';
 import { useCustomEvents, type CalendarEvent } from './useCustomEvents';
 import { useCreateNotification } from './useNotifications';
@@ -24,10 +24,6 @@ const parseCampaignDate = (raw: string): string | null => {
   return null;
 };
 
-type Campaign = Database['public']['Tables']['campaigns']['Row'];
-type CampaignInsert = Database['public']['Tables']['campaigns']['Insert'];
-type CampaignUpdate = Database['public']['Tables']['campaigns']['Update'];
-
 interface CampaignWithRelations extends Campaign {
   creators: {
     id: string;
@@ -35,7 +31,7 @@ interface CampaignWithRelations extends Campaign {
     handle: string;
     avatar: string | null;
   } | null;
-  content_items: Database['public']['Tables']['content_items']['Row'][];
+  content_items: ContentItem[];
 }
 
 interface RecentCampaign {
