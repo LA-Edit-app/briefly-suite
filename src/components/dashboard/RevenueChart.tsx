@@ -139,9 +139,9 @@ export function RevenueChart() {
               tickFormatter={formatCurrency}
             />
             <Tooltip
-              formatter={(value: number, name: string) => [
-                `£${value.toLocaleString()}`,
-                name === "thisYear" ? currentYear : lastYear,
+              formatter={(value, name) => [
+                `£${Number(value).toLocaleString()}`,
+                String(name) === "thisYear" ? currentYear : lastYear,
               ]}
               contentStyle={{
                 backgroundColor: "hsl(0, 0%, 100%)",

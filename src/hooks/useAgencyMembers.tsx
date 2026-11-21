@@ -233,7 +233,7 @@ export const useUpdateMemberRole = () => {
       role: 'owner' | 'admin' | 'talent_manager' | 'creator' | 'member';
       linkedCreatorId?: string | null;
     }) => {
-      const update: Record<string, unknown> = { role };
+      const update: { role: string; linked_creator_id?: string | null } = { role };
       if (linkedCreatorId !== undefined) update.linked_creator_id = linkedCreatorId;
 
       const { data, error } = await supabase
