@@ -363,8 +363,8 @@ const CampaignTracker = () => {
           brand_pos: updatedCampaign.brandPOs || null,
           payment_terms: updatedCampaign.paymentTerms || null,
           notes: updatedCampaign.notes || null,
-          campaign_comments: (updatedCampaign.campaign_comments ?? []) as unknown as import("@/integrations/supabase/types").Database["public"]["Tables"]["campaigns"]["Update"]["campaign_comments"],
-          campaign_attachments: (updatedCampaign.campaign_attachments ?? []) as unknown as import("@/integrations/supabase/types").Database["public"]["Tables"]["campaigns"]["Update"]["campaign_attachments"],
+          campaign_comments: (updatedCampaign.campaign_comments ?? []) as any,
+          campaign_attachments: (updatedCampaign.campaign_attachments ?? []) as any,
         },
       });
       setSelectedCampaign(updatedCampaign);

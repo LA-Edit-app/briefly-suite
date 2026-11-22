@@ -504,7 +504,7 @@ export const useUpdateCampaign = () => {
           brand: data.brand,
           creatorName: data.creators?.name,
           action: 'updated',
-          updates: updates
+          updates: updates as any
         }
       });
     },
@@ -533,7 +533,7 @@ export const useSyncCampaignsFromXero = () => {
 
   return useMutation({
     mutationFn: async ({ creatorId }: { creatorId?: string } = {}) => {
-      const { data, error } = await supabase.functions.invoke<XeroSyncResponse>(
+      const { data, error } = await supabase.functions.invoke(
         'xero-sync-campaigns',
         {
           body: creatorId ? { creatorId } : {},

@@ -4,10 +4,6 @@ import type { Task, TaskInsert, TaskUpdate } from "@/lib/db";
 import { useAgencyId } from "./useDatabase";
 import { useCreateNotification } from "./useNotifications";
 
-type Task = Database["public"]["Tables"]["tasks"]["Row"];
-type TaskInsert = Database["public"]["Tables"]["tasks"]["Insert"];
-type TaskUpdate = Database["public"]["Tables"]["tasks"]["Update"];
-
 type TaskWithRelations = Task & {
   assignee: { id: string; first_name: string | null; last_name: string | null; email: string | null } | null;
 };

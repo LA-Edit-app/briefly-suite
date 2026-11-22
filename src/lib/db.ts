@@ -19,7 +19,7 @@ export interface Campaign {
   ag_price: number | null;
   creator_fee: number | null;
   shot: string | null;
-  complete: string | null;
+  complete: boolean | string | null;
   invoice_no: string | null;
   paid: string | null;
   includes_vat: string | null;
@@ -37,7 +37,7 @@ export interface Campaign {
   campaign_attachments: Json | null;
   created_at: string | null;
   updated_at: string | null;
-  [key: string]: unknown;
+  [key: string]: any;
 }
 
 export type CampaignInsert = Partial<Campaign>;
@@ -57,7 +57,7 @@ export interface ContentItem {
   notes: string | null;
   source: string | null;
   created_at: string | null;
-  [key: string]: unknown;
+  [key: string]: any;
 }
 
 export type ContentItemInsert = Partial<ContentItem>;
@@ -73,7 +73,7 @@ export interface Creator {
   email: string | null;
   is_active: boolean | null;
   created_at: string | null;
-  [key: string]: unknown;
+  [key: string]: any;
 }
 
 export type CreatorInsert = Partial<Creator>;
@@ -84,7 +84,7 @@ export interface Platform {
   name: string;
   icon: string | null;
   created_at: string | null;
-  [key: string]: unknown;
+  [key: string]: any;
 }
 
 export type PlatformInsert = Partial<Platform>;
@@ -97,7 +97,7 @@ export interface Profile {
   avatar_url: string | null;
   agency_id: string | null;
   created_at: string | null;
-  [key: string]: unknown;
+  [key: string]: any;
 }
 
 export type ProfileUpdate = Partial<Profile>;
@@ -116,7 +116,7 @@ export interface Task {
   completed: boolean | null;
   created_at: string | null;
   updated_at: string | null;
-  [key: string]: unknown;
+  [key: string]: any;
 }
 
 export type TaskInsert = Partial<Task>;
@@ -132,7 +132,7 @@ export interface Notification {
   data: Json | null;
   read: boolean | null;
   created_at: string | null;
-  [key: string]: unknown;
+  [key: string]: any;
 }
 
 export type NotificationInsert = Partial<Notification>;
@@ -144,7 +144,7 @@ export interface AgencyMemberRow {
   role: string;
   linked_creator_id: string | null;
   created_at: string | null;
-  [key: string]: unknown;
+  [key: string]: any;
 }
 
 export interface AgencyRow {
@@ -152,5 +152,5 @@ export interface AgencyRow {
   name: string;
   logo_url: string | null;
   created_at: string | null;
-  [key: string]: unknown;
+  [key: string]: any;
 }
