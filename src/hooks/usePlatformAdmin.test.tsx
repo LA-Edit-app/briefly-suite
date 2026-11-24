@@ -7,7 +7,6 @@ import {
   useAdminCreateUser,
   useAdminDeleteUser,
   useCreateAgency,
-  useRemoveAgencyMember,
   useSuspendUser,
   useToggleAgencyStatus,
   useUpdateAgency,
@@ -44,7 +43,6 @@ const cases: Array<[string, () => { mutateAsync: (args: never) => Promise<unknow
     { agencyId: "a1", userId: "u1", role: "admin", firstName: "A", lastName: "B" },
     [ALL_PLATFORM_ADMIN],
   ],
-  ["useRemoveAgencyMember", useRemoveAgencyMember, { agencyId: "a1", userId: "u1" }, [ALL_PLATFORM_ADMIN]],
   ["useSuspendUser", useSuspendUser, { userId: "u1", suspended: true }, [ALL_PLATFORM_ADMIN]],
   ["useAdminDeleteUser", useAdminDeleteUser, { userId: "u1" }, [ALL_PLATFORM_ADMIN]],
   [

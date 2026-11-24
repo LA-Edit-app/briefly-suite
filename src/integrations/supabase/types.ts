@@ -815,10 +815,6 @@ export type Database = {
           status: string
         }[]
       }
-      platform_admin_remove_member: {
-        Args: { p_agency_id: string; p_user_id: string }
-        Returns: undefined
-      }
       platform_admin_update_member: {
         Args: {
           p_agency_id: string

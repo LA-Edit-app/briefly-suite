@@ -6,16 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Building2, Users, Pencil, UserPlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { AgencyRow, AgencyMemberRow } from "@/hooks/usePlatformAdmin";
@@ -23,7 +13,6 @@ import {
   useAgencyMembers,
   useUpdateAgency,
   useUpdateAgencyMember,
-  useRemoveAgencyMember,
   useAllUsers,
 } from "@/hooks/usePlatformAdmin";
 import { DeleteUserDialog, type DeleteUserTarget } from "./DeleteUserDialog";
@@ -54,11 +43,9 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
   const { data: members = [], isLoading: membersLoading } = useAgencyMembers(agency?.id ?? null);
   const updateAgency = useUpdateAgency();
   const updateMember = useUpdateAgencyMember();
-  const removeMember = useRemoveAgencyMember();
 
   const [editingMember, setEditingMember] = useState<AgencyMemberRow | null>(null);
   const [memberForm, setMemberForm] = useState<{ firstName: string; lastName: string; role: string }>({ firstName: "", lastName: "", role: "talent_manager" });
-  const [removingMember, setRemovingMember] = useState<AgencyMemberRow | null>(null);
   const [deletingUser, setDeletingUser] = useState<DeleteUserTarget | null>(null);
   const { data: allUsers = [] } = useAllUsers();
   const statusById = new Map(allUsers.map((u) => [u.id, u.status]));
@@ -106,17 +93,6 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
       toast.success("Member updated");
     } catch (e: unknown) {
       toast.error(errorMessage(e) || "Failed to update member");
-    }
-  };
-
-  const handleRemoveMember = async () => {
-    if (!agency || !removingMember) return;
-    try {
-      await removeMember.mutateAsync({ agencyId: agency.id, userId: removingMember.user_id });
-      setRemovingMember(null);
-      toast.success("Member removed from agency");
-    } catch (e: unknown) {
-      toast.error(errorMessage(e) || "Failed to remove member");
     }
   };
 
@@ -231,8 +207,9 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-destructive hover:text-destructive"
-                        onClick={() => setRemovingMember(m)}
-                        aria-label="Remove member"
+                        onClick={() => handleDeleteOpen(m)}
+                        aria-label="Delete account"
+                        title="Delete account"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
@@ -319,7 +296,7 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
               <p className="text-xs font-medium text-destructive">Danger zone</p>
               <div className="flex items-center justify-between gap-3 mt-1">
                 <p className="text-xs text-muted-foreground">
-                  Permanently delete this user's account and remove them from every agency.
+                  Permanently delete this user's account.
                 </p>
                 <Button
                   variant="outline"
@@ -340,32 +317,6 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Remove member confirmation */}
-      <AlertDialog open={!!removingMember} onOpenChange={(o) => !o && setRemovingMember(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove member?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {removingMember &&
-                `${displayName(removingMember.profile?.first_name ?? null, removingMember.profile?.last_name ?? null, removingMember.profile?.email ?? null)} will lose access to ${agency.name}. Their account is not deleted.`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                void handleRemoveMember();
-              }}
-              disabled={removeMember.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {removeMember.isPending ? "Removing…" : "Remove"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <DeleteUserDialog user={deletingUser} onOpenChange={(o) => !o && setDeletingUser(null)} />
 

@@ -177,21 +177,6 @@ export function useUpdateAgencyMember() {
   });
 }
 
-export function useRemoveAgencyMember() {
-  const invalidate = useInvalidatePlatformAdmin();
-
-  return useMutation({
-    mutationFn: async ({ agencyId, userId }: { agencyId: string; userId: string }) => {
-      const { error } = await supabase.rpc("platform_admin_remove_member", {
-        p_agency_id: agencyId,
-        p_user_id: userId,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => invalidate(),
-  });
-}
-
 export type UserStatus = "active" | "suspended" | "invited";
 
 export type PlatformUserRow = {
@@ -228,14 +213,19 @@ export function useSuspendUser() {
   });
 }
 
+// Used by Platform Admin and by agency Admins in Agency Settings.
 export function useAdminDeleteUser() {
   const invalidate = useInvalidatePlatformAdmin();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ userId }: { userId: string }) => {
       await invokeFunction<{ status: "deleted" }>("admin-delete-user", { userId });
     },
-    onSuccess: () => invalidate(),
+    onSuccess: () => {
+      invalidate();
+      queryClient.invalidateQueries({ queryKey: ["agency-members"] });
+    },
   });
 }
 

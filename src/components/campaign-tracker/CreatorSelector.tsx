@@ -4,7 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Instagram, Youtube } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { LayoutList, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 interface CreatorSelectorProps {
@@ -12,6 +13,8 @@ interface CreatorSelectorProps {
   onSelect: (creator: Creator) => void;
   /** Shown when there are no creators at all (not just no search matches). */
   emptyStateMessage?: string;
+  /** When set, shows a "View all campaigns" option (Admins, #51). */
+  onViewAll?: () => void;
 }
 
 const getPlatformIcon = (platform: string) => {
@@ -31,7 +34,7 @@ const getPlatformIcon = (platform: string) => {
   }
 };
 
-export const CreatorSelector = ({ creators, onSelect, emptyStateMessage = "No creators yet" }: CreatorSelectorProps) => {
+export const CreatorSelector = ({ creators, onSelect, emptyStateMessage = "No creators yet", onViewAll }: CreatorSelectorProps) => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredCreators = creators.filter(
@@ -48,6 +51,15 @@ export const CreatorSelector = ({ creators, onSelect, emptyStateMessage = "No cr
           Choose a creator to view and manage their campaign information
         </p>
       </div>
+
+      {onViewAll && (
+        <div className="flex justify-center">
+          <Button variant="outline" onClick={onViewAll} className="gap-2">
+            <LayoutList className="w-4 h-4" />
+            View all campaigns
+          </Button>
+        </div>
+      )}
 
       <div className="relative max-w-md mx-auto">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

@@ -256,31 +256,6 @@ export const useUpdateMemberRole = () => {
 };
 
 // Remove a member from the agency
-export const useRemoveMember = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      agencyId,
-      userId,
-    }: {
-      agencyId: string;
-      userId: string;
-    }) => {
-      const { error } = await supabase
-        .from('agency_members')
-        .delete()
-        .eq('agency_id', agencyId)
-        .eq('user_id', userId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['agency-members'] });
-    },
-  });
-};
-
 // Invite a member by email — looks up their profile, then inserts into agency_members
 export const useInviteMember = () => {
   const queryClient = useQueryClient();

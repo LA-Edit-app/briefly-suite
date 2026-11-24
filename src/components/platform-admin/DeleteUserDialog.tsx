@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useAdminDeleteUser } from "@/hooks/usePlatformAdmin";
+import { errorMessage } from "@/lib/errors";
 
 export type DeleteUserTarget = { id: string; name: string; email: string | null };
 
@@ -37,7 +38,7 @@ export function DeleteUserDialog({ user, onOpenChange }: Props) {
       onOpenChange(false);
       toast.success("Account deleted");
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Failed to delete account");
+      toast.error(errorMessage(e) || "Failed to delete account");
     }
   };
 
@@ -49,7 +50,7 @@ export function DeleteUserDialog({ user, onOpenChange }: Props) {
           <AlertDialogDescription>
             This deletes the login for{" "}
             <span className="font-medium text-foreground">{user?.name}</span> and removes them from
-            every agency. Campaigns and tasks they created are kept. This cannot be undone.
+            the agency. Campaigns and tasks they created are kept. This cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="space-y-1.5">

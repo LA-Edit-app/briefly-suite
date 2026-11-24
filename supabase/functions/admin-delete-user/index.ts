@@ -25,14 +25,27 @@ Deno.serve(async (req) => {
     const { data: { user: caller }, error: callerError } = await userClient.auth.getUser();
     if (callerError || !caller) throw new Error("Unauthorized");
 
-    const { data: isPlatformAdmin } = await userClient.rpc("is_platform_admin");
-    if (!isPlatformAdmin) throw new Error("Only platform admins can delete accounts");
-
     const { userId } = await req.json();
     if (!userId) throw new Error("userId is required");
     if (userId === caller.id) throw new Error("You cannot delete your own account");
 
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Platform admins can delete any account. Agency Admins can delete accounts
+    // in their own agency; one email = one agency, so the account is theirs.
+    const { data: isPlatformAdmin } = await userClient.rpc("is_platform_admin");
+    if (!isPlatformAdmin) {
+      const { data: isAgencyAdmin } = await userClient.rpc("is_agency_admin");
+      const { data: callerAgencyId } = await userClient.rpc("current_agency_id");
+      if (!isAgencyAdmin || !callerAgencyId) throw new Error("Only Admins can delete accounts");
+      const { data: sameAgency } = await adminClient
+        .from("agency_members")
+        .select("user_id")
+        .eq("agency_id", callerAgencyId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!sameAgency) throw new Error("You can only delete accounts in your own agency");
+    }
 
     const { data: target } = await adminClient
       .from("profiles")
