@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { formatMoney } from "@/lib/currency";
 
 interface EditableCellProps {
   value: string | number | null;
@@ -11,6 +12,8 @@ interface EditableCellProps {
   displayClassName?: string;
   placeholder?: string;
   formatAsCurrency?: boolean;
+  /** ISO code used when formatAsCurrency is set (defaults to GBP). */
+  currency?: string | null;
   readOnly?: boolean;
 }
 
@@ -22,6 +25,7 @@ export function EditableCell({
   displayClassName,
   placeholder = "-",
   formatAsCurrency = false,
+  currency,
   readOnly = false,
 }: EditableCellProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -102,7 +106,7 @@ export function EditableCell({
         <span className={value === null || value === "" ? "text-muted-foreground/50" : ""}>
           {type === "number" && typeof value === "number"
             ? formatAsCurrency 
-              ? `£${value.toLocaleString("en-GB")}`
+              ? formatMoney(value, currency)
               : value.toLocaleString("en-GB")
             : displayValue}
         </span>

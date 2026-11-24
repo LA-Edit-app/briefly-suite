@@ -42,6 +42,7 @@ import type { ColumnDefinition } from "@/hooks/useColumnSchemas";
 import { useCurrentUserRole, useLinkedCreatorId } from "@/hooks/useAgencyMembers";
 import type { Json } from "@/integrations/supabase/types";
 import { errorMessage } from "@/lib/errors";
+import { formatMoney } from "@/lib/currency";
 
 const statusOptions = [
   { value: "Pending", label: "Pending" },
@@ -834,14 +835,14 @@ const CampaignTracker = () => {
                         case "agPrice":
                           return (
                             <TableCell key={col.key} className="text-right">
-                              <EditableCell value={campaign.agPrice} onChange={(v) => void updateCampaign(campaign.id, "agPrice", v)} type="number" formatAsCurrency displayClassName="font-medium text-foreground justify-end" readOnly={isCreatorRole} />
+                              <EditableCell value={campaign.agPrice} onChange={(v) => void updateCampaign(campaign.id, "agPrice", v)} type="number" formatAsCurrency currency={campaign.currency} displayClassName="font-medium text-foreground justify-end" readOnly={isCreatorRole} />
                             </TableCell>
                           );
                         case "creatorFee":
                           return (
                             <TableCell key={col.key} className="text-right">
                               <span className="text-muted-foreground">
-                                {campaign.agPrice != null ? `£${(campaign.agPrice * 0.8).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "-"}
+                                {campaign.agPrice != null ? formatMoney(campaign.agPrice * 0.8, campaign.currency, { minimumFractionDigits: 2 }) : "-"}
                               </span>
                             </TableCell>
                           );
@@ -956,6 +957,7 @@ const CampaignTracker = () => {
                                 }}
                                 type={col.type === "currency" ? "number" : col.type === "number" ? "number" : "text"}
                                 formatAsCurrency={col.type === "currency"}
+                                currency={campaign.currency}
                                 displayClassName="text-muted-foreground"
                                 readOnly={isCreatorRole}
                               />
