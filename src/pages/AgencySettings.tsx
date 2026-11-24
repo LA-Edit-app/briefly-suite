@@ -25,7 +25,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
-import { UserMinus, UserPlus, ShieldCheck, Shield, LayoutGrid, History, Plus, Pencil, Trash2, CheckCircle2, RotateCcw, Link2, Link2Off } from "lucide-react";
+import { UserPlus, ShieldCheck, Shield, LayoutGrid, History, Plus, Pencil, Trash2, CheckCircle2, RotateCcw, Link2, Link2Off } from "lucide-react";
 import { useXeroConnection, useConnectXero, useDisconnectXero } from "@/hooks/useXeroConnection";
 import { ColumnSchemaEditor } from "@/components/agency-settings/ColumnSchemaEditor";
 import { AgencyLogoUpload } from "@/components/agency-settings/AgencyLogoUpload";
@@ -47,13 +47,13 @@ import {
   useIsAgencyAdmin,
   useCurrentUserRole,
   useUpdateMemberRole,
-  useRemoveMember,
   useInviteMember,
 } from "@/hooks/useAgencyMembers";
 import { useAuth } from "@/hooks/useAuth";
 import type { AgencyMemberWithProfile } from "@/hooks/useAgencyMembers";
 import { useCreators } from "@/hooks/useCreators";
 import { ROLE_OPTIONS, roleLabel, type AgencyRole } from "@/lib/roles";
+import { DeleteUserDialog, type DeleteUserTarget } from "@/components/platform-admin/DeleteUserDialog";
 import { agencyNameError } from "@/lib/agencyName";
 
 const roleBadgeVariant = (role: string) => {
@@ -165,7 +165,7 @@ const AgencySettings = () => {
   const { data: currentRole } = useCurrentUserRole();
   const updateAgency = useUpdateAgency();
   const updateMemberRole = useUpdateMemberRole();
-  const removeMember = useRemoveMember();
+  const [deletingMember, setDeletingMember] = useState<DeleteUserTarget | null>(null);
   const inviteMember = useInviteMember();
 
   // Column schema state
@@ -236,16 +236,6 @@ const AgencySettings = () => {
       { agencyId: member.agency_id, userId: member.user_id, role: "creator", linkedCreatorId: creatorId },
       {
         onSuccess: () => toast.success("Creator profile linked"),
-        onError: (err) => toast.error(err.message),
-      }
-    );
-  };
-
-  const handleRemoveMember = (member: AgencyMemberWithProfile) => {
-    removeMember.mutate(
-      { agencyId: member.agency_id, userId: member.user_id },
-      {
-        onSuccess: () => toast.success(`${memberDisplayName(member)} removed from agency`),
         onError: (err) => toast.error(err.message),
       }
     );
@@ -411,30 +401,20 @@ const AgencySettings = () => {
                         )}
 
                         {!isCurrentUser && isAdmin && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                                <UserMinus className="w-4 h-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Remove <strong>{memberDisplayName(member)}</strong> from your agency? They will lose access to all agency data.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleRemoveMember(member)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Remove
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => setDeletingMember({
+                              id: member.user_id,
+                              name: memberDisplayName(member),
+                              email: member.profiles?.email ?? null,
+                            })}
+                            aria-label="Delete account"
+                            title="Delete account"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -747,6 +727,7 @@ const AgencySettings = () => {
         </div>
 
       </div>
+      <DeleteUserDialog user={deletingMember} onOpenChange={(o) => !o && setDeletingMember(null)} />
     </DashboardLayout>
   );
 };
