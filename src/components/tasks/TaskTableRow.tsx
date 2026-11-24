@@ -210,8 +210,8 @@ export function TaskTableRow({ task, isAdmin, memberOptions, allowUnassigned = t
         <EditableCell
           value={task.description ?? ""}
           multiline
-          placeholder="Add description"
-          ariaLabel="Description"
+          placeholder="Add comment"
+          ariaLabel="Comment"
           onSave={(description) => onUpdate(task.id, { description: description || null })}
           className="text-muted-foreground"
         />
