@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import { AGENCY_LOGO_BUCKET, buildLogoPath, logoPathFromUrl } from '@/lib/agencyLogo';
+import { invokeFunction } from "@/lib/edgeFunctions";
+import type { AgencyRole } from "@/lib/roles";
 
 type AgencyMemberRow = Database['public']['Tables']['agency_members']['Row'];
 type AgencyRow = Database['public']['Tables']['agencies']['Row'];
@@ -230,7 +232,7 @@ export const useUpdateMemberRole = () => {
     }: {
       agencyId: string;
       userId: string;
-      role: 'owner' | 'admin' | 'talent_manager' | 'creator' | 'member';
+      role: AgencyRole;
       linkedCreatorId?: string | null;
     }) => {
       const update: Record<string, unknown> = { role };
@@ -287,19 +289,13 @@ export const useInviteMember = () => {
     mutationFn: async ({
       agencyId,
       email,
-      role = 'member',
+      role,
     }: {
       agencyId: string;
       email: string;
-      role?: 'admin' | 'talent_manager' | 'creator' | 'member';
+      role: AgencyRole;
     }) => {
-      const { data, error } = await supabase.functions.invoke('invite-member', {
-        body: { agencyId, email, role },
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      return data as { status: 'added' | 'invited' };
+      return invokeFunction<{ status: 'added' | 'invited' }>('invite-member', { agencyId, email, role });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agency-members'] });

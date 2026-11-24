@@ -21,11 +21,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MoreHorizontal, Search, ShieldCheck } from "lucide-react";
+import { MoreHorizontal, Search, ShieldCheck, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useAllUsers, useSuspendUser, type PlatformUserRow, type UserStatus } from "@/hooks/usePlatformAdmin";
 import { useProfile } from "@/hooks/useDatabase";
 import { DeleteUserDialog, type DeleteUserTarget } from "./DeleteUserDialog";
+import { CreateUserDialog } from "./CreateUserDialog";
+import { roleLabel } from "@/lib/roles";
 
 type StatusFilter = "all" | UserStatus;
 
@@ -58,6 +60,7 @@ export function UsersTab() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [suspending, setSuspending] = useState<PlatformUserRow | null>(null);
   const [deleting, setDeleting] = useState<DeleteUserTarget | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const counts = {
     all: users.length,
@@ -136,6 +139,9 @@ export function UsersTab() {
                   <SelectItem value="invited">Invited</SelectItem>
                 </SelectContent>
               </Select>
+              <Button size="sm" className="h-8 gap-1 text-xs" onClick={() => setCreating(true)}>
+                <UserPlus className="w-3.5 h-3.5" /> Create User
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -148,7 +154,7 @@ export function UsersTab() {
                 <thead>
                   <tr className="border-b border-border text-xs text-muted-foreground">
                     <th className="text-left pb-2 pr-4 font-medium">User</th>
-                    <th className="text-left pb-2 pr-4 font-medium">Agencies</th>
+                    <th className="text-left pb-2 pr-4 font-medium">Agency</th>
                     <th className="text-left pb-2 pr-4 font-medium">Status</th>
                     <th className="text-left pb-2 pr-4 font-medium">Last sign-in</th>
                     <th className="text-left pb-2 pr-4 font-medium">Joined</th>
@@ -191,7 +197,7 @@ export function UsersTab() {
                             <div className="flex flex-wrap gap-1">
                               {u.agencies.map((a) => (
                                 <Badge key={a.id} variant="secondary" className="text-[10px] font-normal">
-                                  {a.name} · <span className="capitalize ml-0.5">{a.role}</span>
+                                  {a.name} · <span className="ml-0.5">{roleLabel(a.role)}</span>
                                 </Badge>
                               ))}
                             </div>
@@ -266,6 +272,7 @@ export function UsersTab() {
         </AlertDialogContent>
       </AlertDialog>
 
+      <CreateUserDialog open={creating} onOpenChange={setCreating} />
       <DeleteUserDialog user={deleting} onOpenChange={(o) => !o && setDeleting(null)} />
     </div>
   );

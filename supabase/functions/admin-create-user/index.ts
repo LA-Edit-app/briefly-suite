@@ -5,6 +5,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Older app versions send the pre-#52 role names.
+const LEGACY_ROLES: Record<string, string> = { owner: "admin", member: "talent_manager" };
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -29,39 +32,45 @@ Deno.serve(async (req) => {
     const { data: isPlatformAdmin } = await userClient.rpc("is_platform_admin");
     if (!isPlatformAdmin) throw new Error("Only platform admins can create users");
 
-    const { agencyId, email, firstName, lastName, role = "member" } = await req.json();
-    if (!agencyId || !email) throw new Error("agencyId and email are required");
+    const { agencyId, email, firstName, lastName, role: requestedRole } = await req.json();
+    const role = LEGACY_ROLES[requestedRole] ?? requestedRole;
+    // No user without an agency and a role (#52).
+    if (!agencyId || !email) throw new Error("Choose an agency and enter an email");
+    if (!["admin", "talent_manager", "creator"].includes(role)) {
+      throw new Error("Choose a role: Admin, Talent Manager or Creator");
+    }
 
     const normalizedEmail = email.toLowerCase().trim();
 
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Check if a profile already exists for this email
+    // One email = one account = one agency (#52).
     const { data: existingProfile } = await adminClient
       .from("profiles")
-      .select("id")
+      .select("id, agency_members(agency_id, agencies(name))")
       .eq("email", normalizedEmail)
       .maybeSingle();
 
     if (existingProfile) {
-      // User already has an account — add them directly to this agency
+      const memberships = (existingProfile.agency_members ?? []) as {
+        agency_id: string;
+        agencies: { name: string } | { name: string }[] | null;
+      }[];
+      if (memberships.some((m) => m.agency_id === agencyId)) {
+        throw new Error("This person is already a member of this agency.");
+      }
+      if (memberships.length > 0) {
+        const other = memberships[0].agencies;
+        const name = (Array.isArray(other) ? other[0]?.name : other?.name) ?? "another agency";
+        throw new Error(`${normalizedEmail} already belongs to ${name}. Each email can only be in one agency, so use a different email.`);
+      }
+
+      // An account with no agency (removed earlier): add it to this agency.
       const { error: memberError } = await adminClient
         .from("agency_members")
         .insert({ agency_id: agencyId, user_id: existingProfile.id, role });
-
-      if (memberError) {
-        if (memberError.code === "23505") {
-          throw new Error("This user is already a member of this agency.");
-        }
-        throw memberError;
-      }
-
-      // Update their profile's agency_id if they don't have one
-      await adminClient
-        .from("profiles")
-        .update({ agency_id: agencyId })
-        .eq("id", existingProfile.id)
-        .is("agency_id", null);
+      if (memberError) throw memberError;
+      await adminClient.from("profiles").update({ agency_id: agencyId }).eq("id", existingProfile.id);
 
       return new Response(
         JSON.stringify({ status: "added" }),
