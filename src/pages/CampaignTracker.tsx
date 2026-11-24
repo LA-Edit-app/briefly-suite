@@ -43,6 +43,7 @@ import { useCurrentUserRole, useLinkedCreatorId } from "@/hooks/useAgencyMembers
 import type { Json } from "@/integrations/supabase/types";
 import { errorMessage } from "@/lib/errors";
 import { formatMoney } from "@/lib/currency";
+import { canViewAllCampaigns } from "@/lib/roles";
 
 const statusOptions = [
   { value: "Pending", label: "Pending" },
@@ -102,9 +103,11 @@ const CampaignTracker = () => {
   const { data: currentRole } = useCurrentUserRole();
   const { data: linkedCreatorId } = useLinkedCreatorId();
   const isCreatorRole = currentRole === "creator";
+  const mayViewAll = canViewAllCampaigns(currentRole);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCreator, setSelectedCreator] = useState<Creator | null>(null);
+  const [viewAll, setViewAll] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignData | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [isDetailReadOnly, setIsDetailReadOnly] = useState(false);
@@ -177,10 +180,19 @@ const CampaignTracker = () => {
     return "pending";
   };
 
+  // "View all campaigns" (#51): every creator's campaigns in one grid.
+  const showingAll = mayViewAll && viewAll && !selectedCreator;
+
+  const creatorById = useMemo(() => new Map(creators.map((c) => [c.id, c])), [creators]);
+
   const creatorCampaigns = useMemo(() => {
+    if (showingAll) return campaigns;
     if (!selectedCreator) return [];
     return campaigns.filter((campaign) => campaign.creatorId === selectedCreator.id);
-  }, [campaigns, selectedCreator]);
+  }, [campaigns, selectedCreator, showingAll]);
+
+  const detailCreator =
+    selectedCreator ?? (selectedCampaign ? creatorById.get(selectedCampaign.creatorId) ?? null : null);
 
   const syncFromXero = async (creatorId: string, mode: "auto" | "manual") => {
     try {
@@ -561,7 +573,8 @@ const CampaignTracker = () => {
   const filteredCampaigns = creatorCampaigns.filter((campaign) =>
     campaign.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
     campaign.activity.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    campaign.invoiceNo.toLowerCase().includes(searchQuery.toLowerCase())
+    campaign.invoiceNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (showingAll && (creatorById.get(campaign.creatorId)?.name ?? "").toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const zoomLevel = ZOOM_LEVELS[zoomIndex];
@@ -589,7 +602,7 @@ const CampaignTracker = () => {
     );
   }
 
-  if (!selectedCreator) {
+  if (!selectedCreator && !showingAll) {
     return (
       <DashboardLayout title="Campaign Tracker">
         {!isCreatorRole && (
@@ -607,6 +620,7 @@ const CampaignTracker = () => {
           creators={creatorsWithAnyCampaigns}
           onSelect={setSelectedCreator}
           emptyStateMessage="No creators with campaigns"
+          onViewAll={mayViewAll ? () => setViewAll(true) : undefined}
         />
         {!isCreatorRole && (
           <CreateCampaignDialog
@@ -629,25 +643,37 @@ const CampaignTracker = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setSelectedCreator(null)}
+              onClick={() => {
+                setSelectedCreator(null);
+                setViewAll(false);
+              }}
               className="shrink-0"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
           )}
-          <Avatar className="w-12 h-12 ring-2 ring-primary/20">
-            <AvatarImage src={selectedCreator.avatar} alt={selectedCreator.name} />
-            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-              {selectedCreator.name
-                .split(" ")
-                .map((n) => n[0])
-                .join("")}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <h2 className="text-lg font-semibold text-foreground">{selectedCreator.name}</h2>
-            <p className="text-sm text-muted-foreground">{selectedCreator.handle}</p>
-          </div>
+          {selectedCreator ? (
+            <>
+              <Avatar className="w-12 h-12 ring-2 ring-primary/20">
+                <AvatarImage src={selectedCreator.avatar} alt={selectedCreator.name} />
+                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                  {selectedCreator.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold text-foreground">{selectedCreator.name}</h2>
+                <p className="text-sm text-muted-foreground">{selectedCreator.handle}</p>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-foreground">All campaigns</h2>
+              <p className="text-sm text-muted-foreground">Every creator in your agency</p>
+            </div>
+          )}
           <div className="text-right">
             <p className="text-sm text-muted-foreground">Total Campaigns</p>
             <p className="text-2xl font-bold text-primary">{creatorCampaigns.length}</p>
@@ -705,15 +731,17 @@ const CampaignTracker = () => {
             />
             {!isCreatorRole && (
               <>
+                {selectedCreator && (
                 <Button
                   variant="outline"
-                  onClick={() => selectedCreator && void syncFromXero(selectedCreator.id, "manual")}
+                  onClick={() => void syncFromXero(selectedCreator.id, "manual")}
                   className="gap-2"
                   disabled={syncCampaignsFromXero.isPending}
                 >
                   <RefreshCw className={`w-4 h-4 ${syncCampaignsFromXero.isPending ? "animate-spin" : ""}`} />
                   {syncCampaignsFromXero.isPending ? "Syncing Xero..." : "Sync Xero"}
                 </Button>
+                )}
                 <Button
                   variant="outline"
                   onClick={() => void downloadTemplate()}
@@ -722,6 +750,7 @@ const CampaignTracker = () => {
                   <Download className="w-4 h-4" />
                   Template
                 </Button>
+                {selectedCreator && (
                 <Button
                   variant="outline"
                   onClick={() => fileInputRef.current?.click()}
@@ -730,6 +759,7 @@ const CampaignTracker = () => {
                   <Upload className="w-4 h-4" />
                   Import Excel
                 </Button>
+                )}
                 <Button
                   className="bg-primary text-primary-foreground hover:bg-primary/90"
                   onClick={() => setIsCreateCampaignOpen(true)}
@@ -750,6 +780,9 @@ const CampaignTracker = () => {
                 <TableRow className="bg-muted/50">
                   <TableHead className="font-semibold text-foreground whitespace-nowrap w-10"></TableHead>
                   <TableHead className="font-semibold text-foreground whitespace-nowrap w-10"></TableHead>
+                  {showingAll && (
+                    <TableHead className="font-semibold text-foreground whitespace-nowrap">Creator</TableHead>
+                  )}
                   {activeColumns.map((col) => (
                     <TableHead
                       key={col.key}
@@ -767,8 +800,8 @@ const CampaignTracker = () => {
               <TableBody>
                 {filteredCampaigns.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={2 + activeColumns.length} className="py-8 text-center text-sm text-muted-foreground">
-                      No campaigns found for this creator
+                    <TableCell colSpan={(showingAll ? 3 : 2) + activeColumns.length} className="py-8 text-center text-sm text-muted-foreground">
+                      {showingAll ? "No campaigns found" : "No campaigns found for this creator"}
                     </TableCell>
                   </TableRow>
                 )}
@@ -804,6 +837,11 @@ const CampaignTracker = () => {
                         </Button>
                       )}
                     </TableCell>
+                    {showingAll && (
+                      <TableCell className="whitespace-nowrap font-medium text-foreground">
+                        {creatorById.get(campaign.creatorId)?.name ?? "—"}
+                      </TableCell>
+                    )}
                     {activeColumns.map((col) => {
                       const customVal = campaign.custom_fields?.[col.key] ?? "";
 
@@ -974,10 +1012,10 @@ const CampaignTracker = () => {
       </div>
 
       {/* Campaign Detail Modal */}
-      {selectedCreator && (
+      {detailCreator && (
         <CampaignDetailModal
           campaign={selectedCampaign}
-          creator={selectedCreator}
+          creator={detailCreator}
           open={detailModalOpen}
           onOpenChange={(open) => {
             setDetailModalOpen(open);

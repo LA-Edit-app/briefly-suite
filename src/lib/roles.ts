@@ -24,3 +24,9 @@ export function roleLabel(role: string | null | undefined): string {
 
 export const isAgencyRole = (value: string): value is AgencyRole =>
   (AGENCY_ROLES as readonly string[]).includes(value);
+
+/**
+ * Who sees "View all campaigns" in the Campaign Tracker (#51). Admins only
+ * for now; this is the one place to change if it becomes an agency setting.
+ */
+export const canViewAllCampaigns = (role: string | null | undefined): boolean => role === "admin";

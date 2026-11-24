@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AGENCY_ROLES, ROLE_OPTIONS, isAgencyRole, roleLabel } from "./roles";
+import { AGENCY_ROLES, ROLE_OPTIONS, canViewAllCampaigns, isAgencyRole, roleLabel } from "./roles";
 import { AGENCY_NAME_TAKEN, agencyNameError } from "./agencyName";
 
 describe("agency roles (#52)", () => {
@@ -29,5 +29,14 @@ describe("agencyNameError", () => {
 
   it("passes other errors through", () => {
     expect(agencyNameError(new Error("permission denied"))).toBe("permission denied");
+  });
+});
+
+describe("canViewAllCampaigns (#51)", () => {
+  it("is Admin only for now", () => {
+    expect(canViewAllCampaigns("admin")).toBe(true);
+    expect(canViewAllCampaigns("talent_manager")).toBe(false);
+    expect(canViewAllCampaigns("creator")).toBe(false);
+    expect(canViewAllCampaigns(null)).toBe(false);
   });
 });
