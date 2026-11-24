@@ -18,7 +18,7 @@ import { compareTasks, isDone, isMyTask, isTeamTask, personName, type TaskRow } 
 type TaskUpdate = Database["public"]["Tables"]["tasks"]["Update"];
 type TabValue = "my" | "team";
 
-const COLUMNS = ["", "Task name", "Due date", "Assignee", "Status", "Priority", "Description"];
+const COLUMNS = ["", "Task name", "Due date", "Assignee", "Status", "Priority", "Comment"];
 
 export function TaskTable() {
   const { data, isLoading, error } = useTasks();

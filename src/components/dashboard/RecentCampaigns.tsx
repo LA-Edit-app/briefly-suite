@@ -1,37 +1,7 @@
-import { Badge } from "@/components/ui/badge";
 import { useRecentCampaigns } from "@/hooks/useCampaigns";
-
-const statusStyles = {
-  active: "bg-green-100 text-green-700 hover:bg-green-100",
-  pending: "bg-amber-100 text-amber-700 hover:bg-amber-100",
-  completed: "bg-slate-100 text-slate-700 hover:bg-slate-100",
-  awaiting_details: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
-};
 
 export function RecentCampaigns() {
   const { data: campaigns = [], isLoading, error } = useRecentCampaigns(5);
-
-  const getStatus = (campaign: {
-    complete: boolean;
-    campaign_status: string;
-    completion_status: string | null;
-    live_date: string | null;
-    launch_date: string | null;
-  }) => {
-    if (campaign.completion_status === "awaiting_details") return "awaiting_details" as const;
-    if (campaign.campaign_status === "completed") return "completed" as const;
-    if (campaign.campaign_status === "active") return "active" as const;
-    if (campaign.campaign_status === "pending") return "pending" as const;
-    if (campaign.complete) return "completed" as const;
-    if (campaign.live_date) return "active" as const;
-    if (campaign.launch_date) return "pending" as const;
-    return "pending" as const;
-  };
-
-  const getStatusLabel = (status: keyof typeof statusStyles) => {
-    if (status === "awaiting_details") return "AWAITING DETAILS";
-    return status;
-  };
 
   return (
     <div className="bg-card rounded-xl border border-border p-6">
@@ -52,15 +22,12 @@ export function RecentCampaigns() {
               <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
                 Creator
               </th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                Status
-              </th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={3} className="py-6 px-4 text-center text-muted-foreground">
+                <td colSpan={2} className="py-6 px-4 text-center text-muted-foreground">
                   Loading campaigns...
                 </td>
               </tr>
@@ -68,7 +35,7 @@ export function RecentCampaigns() {
 
             {!isLoading && error && (
               <tr>
-                <td colSpan={3} className="py-6 px-4 text-center text-destructive">
+                <td colSpan={2} className="py-6 px-4 text-center text-destructive">
                   Failed to load campaigns
                 </td>
               </tr>
@@ -76,16 +43,13 @@ export function RecentCampaigns() {
 
             {!isLoading && !error && campaigns.length === 0 && (
               <tr>
-                <td colSpan={3} className="py-6 px-4 text-center text-muted-foreground">
+                <td colSpan={2} className="py-6 px-4 text-center text-muted-foreground">
                   No campaigns yet
                 </td>
               </tr>
             )}
 
-            {!isLoading && !error && campaigns.map((campaign) => {
-              const status = getStatus(campaign);
-
-              return (
+            {!isLoading && !error && campaigns.map((campaign) => (
               <tr
                 key={campaign.id}
                 className="border-b border-border last:border-0 hover:bg-muted/50 transition-colors"
@@ -94,17 +58,8 @@ export function RecentCampaigns() {
                   <span className="font-medium text-foreground">{campaign.brand}</span>
                 </td>
                 <td className="py-3 px-4 text-muted-foreground">{campaign.creators?.name || "-"}</td>
-                <td className="py-3 px-4">
-                  <Badge
-                    variant="secondary"
-                    className={statusStyles[status]}
-                  >
-                    {getStatusLabel(status)}
-                  </Badge>
-                </td>
               </tr>
-              );
-            })}
+            ))}
           </tbody>
         </table>
       </div>
