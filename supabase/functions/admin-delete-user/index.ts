@@ -43,14 +43,24 @@ Deno.serve(async (req) => {
     if (!target) throw new Error("User not found");
     if (target.is_platform_admin) throw new Error("Platform admin accounts cannot be deleted here");
 
-    const { data: ownedAgencies } = await adminClient
-      .from("agencies")
-      .select("name")
-      .eq("owner_id", userId);
+    // Don't leave an agency that still has people in it without an Admin (#52).
+    const { data: adminOf } = await adminClient
+      .from("agency_members")
+      .select("agency_id, agencies(name)")
+      .eq("user_id", userId)
+      .eq("role", "admin");
 
-    if (ownedAgencies && ownedAgencies.length > 0) {
-      const names = ownedAgencies.map((a) => a.name).join(", ");
-      throw new Error(`This user owns ${names}. Agency owners cannot be deleted.`);
+    for (const row of adminOf ?? []) {
+      const { data: others } = await adminClient
+        .from("agency_members")
+        .select("role")
+        .eq("agency_id", row.agency_id)
+        .neq("user_id", userId);
+      if (others && others.length > 0 && !others.some((m) => m.role === "admin")) {
+        const agency = row.agencies as { name: string } | { name: string }[] | null;
+        const name = (Array.isArray(agency) ? agency[0]?.name : agency?.name) ?? "their agency";
+        throw new Error(`This user is the only Admin of ${name}. Make someone else Admin first.`);
+      }
     }
 
     if (target.email) {

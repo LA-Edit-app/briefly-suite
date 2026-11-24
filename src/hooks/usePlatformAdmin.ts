@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "./useDatabase";
+import { invokeFunction } from "@/lib/edgeFunctions";
+import type { AgencyRole } from "@/lib/roles";
 
 export type AgencyRow = {
   id: string;
@@ -9,7 +11,8 @@ export type AgencyRow = {
   created_at: string | null;
   owner_id: string | null;
   logo_url: string | null;
-  owner: { id: string; first_name: string | null; last_name: string | null; email: string | null } | null;
+  /** The agency's Admins (#52: there is no separate owner). */
+  admins: { first_name: string | null; last_name: string | null; email: string | null }[];
   member_count: number;
   campaign_count: number;
 };
@@ -39,8 +42,7 @@ export function useAllAgencies() {
         .from("agencies")
         .select(`
           id, name, is_active, created_at, owner_id, logo_url,
-          owner:profiles!agencies_owner_id_fkey (id, first_name, last_name, email),
-          agency_members (user_id),
+          agency_members (user_id, role, profile:profiles!agency_members_user_id_fkey (first_name, last_name, email)),
           campaigns (id)
         `)
         .order("created_at", { ascending: false });
@@ -54,7 +56,10 @@ export function useAllAgencies() {
         created_at: a.created_at,
         owner_id: a.owner_id,
         logo_url: a.logo_url,
-        owner: Array.isArray(a.owner) ? (a.owner[0] ?? null) : (a.owner ?? null),
+        admins: (a.agency_members ?? [])
+          .filter((m) => m.role === "admin")
+          .map((m) => (Array.isArray(m.profile) ? m.profile[0] : m.profile))
+          .filter((p): p is NonNullable<typeof p> => Boolean(p)),
         member_count: Array.isArray(a.agency_members) ? a.agency_members.length : 0,
         campaign_count: Array.isArray(a.campaigns) ? a.campaigns.length : 0,
       })) as AgencyRow[];
@@ -143,19 +148,6 @@ export function useUpdateAgency() {
   });
 }
 
-// On a non-2xx response functions.invoke returns a generic error; the
-// function's own message is in the response body.
-async function invokeAdminFunction<T>(name: string, body: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.functions.invoke(name, { body });
-  if (error) {
-    const response = (error as { context?: Response }).context;
-    const payload = response ? await response.json().catch(() => null) : null;
-    throw new Error(payload?.error ?? error.message);
-  }
-  if (data?.error) throw new Error(data.error);
-  return data as T;
-}
-
 function useInvalidatePlatformAdmin() {
   const queryClient = useQueryClient();
   return () => queryClient.invalidateQueries({ queryKey: ["platform-admin"] });
@@ -230,7 +222,7 @@ export function useSuspendUser() {
 
   return useMutation({
     mutationFn: async ({ userId, suspended }: { userId: string; suspended: boolean }) => {
-      await invokeAdminFunction<{ status: UserStatus }>("admin-suspend-user", { userId, suspended });
+      await invokeFunction<{ status: UserStatus }>("admin-suspend-user", { userId, suspended });
     },
     onSuccess: () => invalidate(),
   });
@@ -241,7 +233,7 @@ export function useAdminDeleteUser() {
 
   return useMutation({
     mutationFn: async ({ userId }: { userId: string }) => {
-      await invokeAdminFunction<{ status: "deleted" }>("admin-delete-user", { userId });
+      await invokeFunction<{ status: "deleted" }>("admin-delete-user", { userId });
     },
     onSuccess: () => invalidate(),
   });
@@ -262,9 +254,9 @@ export function useAdminCreateUser() {
       email: string;
       firstName: string;
       lastName: string;
-      role: "admin" | "member";
+      role: AgencyRole;
     }) => {
-      const data = await invokeAdminFunction<{ status: "added" | "invited" }>("admin-create-user", {
+      const data = await invokeFunction<{ status: "added" | "invited" }>("admin-create-user", {
         agencyId, email, firstName, lastName, role,
       });
       return { ...data, agencyId };

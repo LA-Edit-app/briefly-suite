@@ -22,12 +22,15 @@ import type { AgencyRow, AgencyMemberRow } from "@/hooks/usePlatformAdmin";
 import {
   useAgencyMembers,
   useUpdateAgency,
-  useAdminCreateUser,
   useUpdateAgencyMember,
   useRemoveAgencyMember,
   useAllUsers,
 } from "@/hooks/usePlatformAdmin";
 import { DeleteUserDialog, type DeleteUserTarget } from "./DeleteUserDialog";
+import { CreateUserDialog } from "./CreateUserDialog";
+import { ROLE_OPTIONS, roleLabel, type AgencyRole } from "@/lib/roles";
+import { agencyNameError } from "@/lib/agencyName";
+import { errorMessage } from "@/lib/errors";
 
 interface Props {
   agency: AgencyRow | null;
@@ -50,12 +53,11 @@ function displayName(firstName: string | null, lastName: string | null, email: s
 export function AgencySheet({ agency, open, onOpenChange }: Props) {
   const { data: members = [], isLoading: membersLoading } = useAgencyMembers(agency?.id ?? null);
   const updateAgency = useUpdateAgency();
-  const adminCreateUser = useAdminCreateUser();
   const updateMember = useUpdateAgencyMember();
   const removeMember = useRemoveAgencyMember();
 
   const [editingMember, setEditingMember] = useState<AgencyMemberRow | null>(null);
-  const [memberForm, setMemberForm] = useState({ firstName: "", lastName: "", role: "member" });
+  const [memberForm, setMemberForm] = useState<{ firstName: string; lastName: string; role: string }>({ firstName: "", lastName: "", role: "talent_manager" });
   const [removingMember, setRemovingMember] = useState<AgencyMemberRow | null>(null);
   const [deletingUser, setDeletingUser] = useState<DeleteUserTarget | null>(null);
   const { data: allUsers = [] } = useAllUsers();
@@ -64,12 +66,6 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState("");
   const [addUserOpen, setAddUserOpen] = useState(false);
-  const [userForm, setUserForm] = useState({
-    email: "",
-    firstName: "",
-    lastName: "",
-    role: "member" as "admin" | "member",
-  });
 
   const handleRenameOpen = () => {
     setNameInput(agency?.name ?? "");
@@ -83,29 +79,7 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
       setEditingName(false);
       toast.success("Agency renamed");
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Failed to rename agency");
-    }
-  };
-
-  const handleAddUser = async () => {
-    if (!agency || !userForm.email.trim()) return;
-    try {
-      const result = await adminCreateUser.mutateAsync({
-        agencyId: agency.id,
-        email: userForm.email.trim(),
-        firstName: userForm.firstName.trim(),
-        lastName: userForm.lastName.trim(),
-        role: userForm.role,
-      });
-      setAddUserOpen(false);
-      setUserForm({ email: "", firstName: "", lastName: "", role: "member" });
-      toast.success(
-        result.status === "invited"
-          ? "Invitation sent — user will receive an email to set up their account."
-          : "User added to agency."
-      );
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Failed to create user");
+      toast.error(agencyNameError(e));
     }
   };
 
@@ -131,7 +105,7 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
       setEditingMember(null);
       toast.success("Member updated");
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Failed to update member");
+      toast.error(errorMessage(e) || "Failed to update member");
     }
   };
 
@@ -142,7 +116,7 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
       setRemovingMember(null);
       toast.success("Member removed from agency");
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Failed to remove member");
+      toast.error(errorMessage(e) || "Failed to remove member");
     }
   };
 
@@ -198,26 +172,6 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
             </div>
           </SheetHeader>
 
-          {/* Owner */}
-          {agency.owner && (
-            <div className="mb-5">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1.5">Owner</p>
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
-                  {initials(agency.owner.first_name, agency.owner.last_name, agency.owner.email)}
-                </div>
-                <div>
-                  <p className="text-sm font-medium">
-                    {displayName(agency.owner.first_name, agency.owner.last_name, agency.owner.email)}
-                  </p>
-                  {agency.owner.email && (
-                    <p className="text-xs text-muted-foreground">{agency.owner.email}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Members */}
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -260,8 +214,8 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
                         Invited
                       </Badge>
                     )}
-                    <Badge variant="outline" className="text-[10px] shrink-0 capitalize">
-                      {m.role}
+                    <Badge variant="outline" className="text-[10px] shrink-0">
+                      {roleLabel(m.role)}
                     </Badge>
                     <div className="flex items-center shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                       <Button
@@ -273,17 +227,15 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
-                      {m.role !== "owner" && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => setRemovingMember(m)}
-                          aria-label="Remove member"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => setRemovingMember(m)}
+                        aria-label="Remove member"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -347,25 +299,22 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
             </div>
             <div>
               <Label className="text-xs">Role</Label>
-              {memberForm.role === "owner" ? (
-                <p className="text-sm text-muted-foreground mt-1">Owner (cannot be changed)</p>
-              ) : (
-                <Select
-                  value={memberForm.role}
-                  onValueChange={(v) => setMemberForm((f) => ({ ...f, role: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="member">Member</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
+              <Select
+                value={memberForm.role}
+                onValueChange={(v) => setMemberForm((f) => ({ ...f, role: v as AgencyRole }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLE_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-          {editingMember && editingMember.role !== "owner" && (
+          {editingMember && (
             <div className="border-t border-border pt-3">
               <p className="text-xs font-medium text-destructive">Danger zone</p>
               <div className="flex items-center justify-between gap-3 mt-1">
@@ -420,71 +369,7 @@ export function AgencySheet({ agency, open, onOpenChange }: Props) {
 
       <DeleteUserDialog user={deletingUser} onOpenChange={(o) => !o && setDeletingUser(null)} />
 
-      {/* Add user dialog */}
-      <Dialog open={addUserOpen} onOpenChange={setAddUserOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Add User to {agency.name}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div>
-              <Label htmlFor="au-email" className="text-xs">Email *</Label>
-              <Input
-                id="au-email"
-                type="email"
-                placeholder="user@example.com"
-                value={userForm.email}
-                onChange={(e) => setUserForm((f) => ({ ...f, email: e.target.value }))}
-                autoFocus
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label htmlFor="au-first" className="text-xs">First name</Label>
-                <Input
-                  id="au-first"
-                  placeholder="Jane"
-                  value={userForm.firstName}
-                  onChange={(e) => setUserForm((f) => ({ ...f, firstName: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="au-last" className="text-xs">Last name</Label>
-                <Input
-                  id="au-last"
-                  placeholder="Doe"
-                  value={userForm.lastName}
-                  onChange={(e) => setUserForm((f) => ({ ...f, lastName: e.target.value }))}
-                />
-              </div>
-            </div>
-            <div>
-              <Label className="text-xs">Role</Label>
-              <Select
-                value={userForm.role}
-                onValueChange={(v) => setUserForm((f) => ({ ...f, role: v as "admin" | "member" }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="member">Member</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setAddUserOpen(false)}>Cancel</Button>
-            <Button
-              onClick={() => void handleAddUser()}
-              disabled={!userForm.email.trim() || adminCreateUser.isPending}
-            >
-              {adminCreateUser.isPending ? "Sending…" : "Add User"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CreateUserDialog open={addUserOpen} onOpenChange={setAddUserOpen} agencyId={agency.id} />
     </>
   );
 }

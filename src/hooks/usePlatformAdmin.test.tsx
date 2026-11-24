@@ -50,7 +50,7 @@ const cases: Array<[string, () => { mutateAsync: (args: never) => Promise<unknow
   [
     "useAdminCreateUser",
     useAdminCreateUser,
-    { agencyId: "a1", email: "new@example.com", firstName: "N", lastName: "U", role: "member" },
+    { agencyId: "a1", email: "new@example.com", firstName: "N", lastName: "U", role: "talent_manager" },
     [membersOf("a1"), AGENCIES],
   ],
 ];

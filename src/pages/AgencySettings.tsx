@@ -53,20 +53,13 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import type { AgencyMemberWithProfile } from "@/hooks/useAgencyMembers";
 import { useCreators } from "@/hooks/useCreators";
+import { ROLE_OPTIONS, roleLabel, type AgencyRole } from "@/lib/roles";
+import { agencyNameError } from "@/lib/agencyName";
 
 const roleBadgeVariant = (role: string) => {
-  if (role === "owner") return "default";
-  if (role === "admin") return "secondary";
+  if (role === "admin") return "default";
   if (role === "talent_manager") return "secondary";
   return "outline";
-};
-
-const roleLabel = (role: string) => {
-  if (role === "owner") return "Owner";
-  if (role === "admin") return "Admin";
-  if (role === "talent_manager") return "Talent Manager";
-  if (role === "creator") return "Creator";
-  return "Member";
 };
 
 const memberInitials = (member: AgencyMemberWithProfile) => {
@@ -196,7 +189,7 @@ const AgencySettings = () => {
 
   const [agencyName, setAgencyName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<"admin" | "talent_manager" | "creator" | "member">("member");
+  const [inviteRole, setInviteRole] = useState<AgencyRole>("talent_manager");
 
   // Sync agency name to local state when loaded
   const [agencyNameInitialized, setAgencyNameInitialized] = useState(false);
@@ -212,12 +205,12 @@ const AgencySettings = () => {
       { id: agency.id, name: agencyName.trim() },
       {
         onSuccess: () => toast.success("Agency name updated"),
-        onError: (err) => toast.error(err.message),
+        onError: (err) => toast.error(agencyNameError(err)),
       }
     );
   };
 
-  const handleRoleChange = (member: AgencyMemberWithProfile, newRole: "admin" | "talent_manager" | "creator" | "member") => {
+  const handleRoleChange = (member: AgencyMemberWithProfile, newRole: AgencyRole) => {
     // Clear linked creator when switching away from creator role
     const linkedCreatorId = newRole === "creator"
       ? (pendingLinkedCreator[member.user_id] || member.linked_creator_id || null)
@@ -272,7 +265,7 @@ const AgencySettings = () => {
             toast.success(`${emailSnapshot} has been added to your agency.`);
           }
           setInviteEmail("");
-          setInviteRole("member");
+          setInviteRole("talent_manager");
         },
         onError: (err) => toast.error(err.message),
       }
@@ -287,7 +280,7 @@ const AgencySettings = () => {
             <ShieldCheck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">Admin Access Required</h3>
             <p className="text-muted-foreground">
-              Only agency owners and admins can manage agency settings.
+              Only agency Admins can manage agency settings.
             </p>
           </div>
         </div>
@@ -353,7 +346,6 @@ const AgencySettings = () => {
             <div className="space-y-1">
               {members?.map((member, idx) => {
                 const isCurrentUser = member.user_id === user?.id;
-                const isOwner = member.role === "owner";
 
                 return (
                   <div key={member.user_id}>
@@ -378,9 +370,9 @@ const AgencySettings = () => {
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                        {isOwner || isCurrentUser ? (
+                        {isCurrentUser ? (
                           <Badge variant={roleBadgeVariant(member.role)}>
-                            {member.role === "owner" && <Shield className="w-3 h-3 mr-1" />}
+                            {member.role === "admin" && <Shield className="w-3 h-3 mr-1" />}
                             {roleLabel(member.role)}
                           </Badge>
                         ) : (
@@ -388,17 +380,16 @@ const AgencySettings = () => {
                             <Select
                               value={member.role}
                               onValueChange={(v) =>
-                                handleRoleChange(member, v as "admin" | "talent_manager" | "creator" | "member")
+                                handleRoleChange(member, v as AgencyRole)
                               }
                             >
                               <SelectTrigger className="h-8 w-36 text-xs">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="admin">Admin</SelectItem>
-                                <SelectItem value="talent_manager">Talent Manager</SelectItem>
-                                <SelectItem value="creator">Creator</SelectItem>
-                                <SelectItem value="member">Member</SelectItem>
+                                {ROLE_OPTIONS.map((o) => (
+                                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                             {member.role === "creator" && creators.length > 0 && (
@@ -419,7 +410,7 @@ const AgencySettings = () => {
                           </>
                         )}
 
-                        {!isOwner && !isCurrentUser && currentRole === "owner" && (
+                        {!isCurrentUser && isAdmin && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
@@ -701,7 +692,7 @@ const AgencySettings = () => {
         <div className="bg-card rounded-xl border border-border p-6">
           <h3 className="text-lg font-semibold text-foreground mb-2">Invite Team Member</h3>
           <p className="text-sm text-muted-foreground mb-6">
-            Add an existing user by email, or send an invitation to someone who hasn't signed up yet.
+            Send an invitation email. Each email address can belong to one agency only.
           </p>
 
           <div className="flex gap-3">
@@ -720,16 +711,15 @@ const AgencySettings = () => {
               <Label>Role</Label>
               <Select
                 value={inviteRole}
-                onValueChange={(v) => setInviteRole(v as "admin" | "talent_manager" | "creator" | "member")}
+                onValueChange={(v) => setInviteRole(v as AgencyRole)}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="talent_manager">Talent Manager</SelectItem>
-                  <SelectItem value="creator">Creator</SelectItem>
-                  <SelectItem value="member">Member</SelectItem>
+                  {ROLE_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

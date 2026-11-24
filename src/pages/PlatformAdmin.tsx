@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import { useIsPlatformAdmin, useAllAgencies, useToggleAgencyStatus, useCreateAgency, type AgencyRow } from "@/hooks/usePlatformAdmin";
 import { useProfile } from "@/hooks/useDatabase";
 import { AgencySheet } from "@/components/platform-admin/AgencySheet";
+import { agencyNameError } from "@/lib/agencyName";
 
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
@@ -64,7 +65,7 @@ export default function PlatformAdmin() {
       setNewAgencyName("");
       toast.success("Agency created");
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Failed to create agency");
+      toast.error(agencyNameError(e));
     }
   };
 
@@ -75,7 +76,7 @@ export default function PlatformAdmin() {
 
   const filtered = agencies.filter((a) =>
     a.name.toLowerCase().includes(search.toLowerCase()) ||
-    (a.owner?.email ?? "").toLowerCase().includes(search.toLowerCase())
+    a.admins.some((p) => (p.email ?? "").toLowerCase().includes(search.toLowerCase()))
   );
 
   const totalMembers = agencies.reduce((s, a) => s + a.member_count, 0);
@@ -155,7 +156,7 @@ export default function PlatformAdmin() {
                 <div className="relative w-48">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                   <Input
-                    placeholder="Search name or owner…"
+                    placeholder="Search name or admin…"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="h-8 pl-8 text-sm"
@@ -180,7 +181,7 @@ export default function PlatformAdmin() {
                   <thead>
                     <tr className="border-b border-border text-xs text-muted-foreground">
                       <th className="text-left pb-2 pr-4 font-medium">Agency</th>
-                      <th className="text-left pb-2 pr-4 font-medium">Owner</th>
+                      <th className="text-left pb-2 pr-4 font-medium">Admins</th>
                       <th className="text-left pb-2 pr-4 font-medium">
                         <span className="flex items-center gap-1"><Users className="w-3 h-3" /> Members</span>
                       </th>
@@ -201,9 +202,11 @@ export default function PlatformAdmin() {
                       </tr>
                     )}
                     {filtered.map((agency) => {
-                      const ownerName = agency.owner
-                        ? [agency.owner.first_name, agency.owner.last_name].filter(Boolean).join(" ") || agency.owner.email
+                      const firstAdmin = agency.admins[0];
+                      const adminName = firstAdmin
+                        ? [firstAdmin.first_name, firstAdmin.last_name].filter(Boolean).join(" ") || firstAdmin.email
                         : "—";
+                      const moreAdmins = agency.admins.length - 1;
 
                       return (
                         <tr
@@ -220,9 +223,12 @@ export default function PlatformAdmin() {
                             </div>
                           </td>
                           <td className="py-2.5 pr-4 text-muted-foreground text-xs">
-                            <div>{ownerName}</div>
-                            {agency.owner?.email && ownerName !== agency.owner.email && (
-                              <div className="text-[10px] opacity-70">{agency.owner.email}</div>
+                            <div>
+                              {adminName}
+                              {moreAdmins > 0 && <span className="opacity-70"> +{moreAdmins}</span>}
+                            </div>
+                            {firstAdmin?.email && adminName !== firstAdmin.email && (
+                              <div className="text-[10px] opacity-70">{firstAdmin.email}</div>
                             )}
                           </td>
                           <td className="py-2.5 pr-4 text-muted-foreground">{agency.member_count}</td>

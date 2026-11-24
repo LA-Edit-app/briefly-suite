@@ -11,6 +11,7 @@ import { consumeAuthLinkError } from "@/lib/authLink";
 import { isPasswordValid, PASSWORD_RULES_MESSAGE } from "@/lib/password";
 import { z } from "zod";
 import { errorMessage } from "@/lib/errors";
+import { AGENCY_NAME_TAKEN } from "@/lib/agencyName";
 
 const emailSchema = z.string().email({ message: "Please enter a valid email address" });
 
@@ -22,8 +23,9 @@ export default function Auth() {
   const [resetSent, setResetSent] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [agencyName, setAgencyName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ agencyName?: string; email?: string; password?: string }>({});
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -62,7 +64,8 @@ export default function Auth() {
   };
 
   const validateForm = () => {
-    const fieldErrors: { email?: string; password?: string } = {};
+    const fieldErrors: { agencyName?: string; email?: string; password?: string } = {};
+    if (mode === "signup" && !agencyName.trim()) fieldErrors.agencyName = "Please enter your agency's name";
     const emailResult = emailSchema.safeParse(email);
     if (!emailResult.success) fieldErrors.email = emailResult.error.errors[0].message;
     if (mode === "login" && !password) fieldErrors.password = "Please enter your password";
@@ -98,12 +101,23 @@ export default function Auth() {
           description: "You have successfully logged in.",
         });
       } else {
+        // Agency names are unique (#52): check first so we can say why.
+        const { data: available, error: nameError } = await supabase.rpc("agency_name_available", {
+          p_name: agencyName.trim(),
+        });
+        if (nameError) throw nameError;
+        if (!available) {
+          setErrors({ agencyName: AGENCY_NAME_TAKEN });
+          return;
+        }
+
         const redirectUrl = `${window.location.origin}/`;
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: redirectUrl,
+            data: { agency_name: agencyName.trim() },
           },
         });
         if (error) throw error;
@@ -117,6 +131,9 @@ export default function Auth() {
       let message = errorMessage(error);
       if (message.includes("User already registered")) {
         message = "This email is already registered. Please log in instead.";
+      } else if (mode === "signup" && message.includes("Database error saving new user")) {
+        // Someone took the name between the check and the sign-up.
+        message = AGENCY_NAME_TAKEN;
       }
       toast({
         title: "Error",
@@ -158,6 +175,25 @@ export default function Auth() {
           ) : (
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {mode === "signup" && (
+              <div className="space-y-2">
+                <Label htmlFor="agencyName">Agency name</Label>
+                <Input
+                  id="agencyName"
+                  placeholder="Your agency"
+                  value={agencyName}
+                  onChange={(e) => setAgencyName(e.target.value)}
+                  disabled={loading}
+                  autoComplete="organization"
+                />
+                {errors.agencyName ? (
+                  <p className="text-sm text-destructive">{errors.agencyName}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">You'll be this agency's Admin.</p>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input

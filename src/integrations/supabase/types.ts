@@ -780,6 +780,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      agency_name_available: { Args: { p_name: string }; Returns: boolean }
       current_agency_id: { Args: never; Returns: string }
       current_user_agency_role: { Args: never; Returns: string }
       current_user_linked_creator_id: { Args: never; Returns: string }
